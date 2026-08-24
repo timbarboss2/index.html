@@ -3,41 +3,77 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-    <title>VR Room Designer - Decorate Your Space</title>
+    <title>VR Room Designer - Hand Tracking</title>
     <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-            touch-action: none;
-        }
-        
-        body {
-            overflow: hidden;
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { 
+            overflow: hidden; 
+            font-family: Arial, sans-serif; 
             background: #1a1a2e;
+            position: relative;
         }
         
-        #gameCanvas {
-            display: block;
-            width: 100vw;
-            height: 100vh;
+        #gameCanvas { 
+            display: block; 
+            width: 100vw; 
+            height: 100vh; 
         }
+        
+        #videoInput {
+            position: fixed;
+            top: 10px;
+            right: 10px;
+            width: 240px;
+            height: 180px;
+            border: 3px solid #00d4ff;
+            border-radius: 10px;
+            z-index: 1000;
+            transform: scaleX(-1);
+            object-fit: cover;
+        }
+        
+        #handTrackingOverlay {
+            position: fixed;
+            top: 10px;
+            right: 10px;
+            width: 240px;
+            height: 180px;
+            border: 3px solid #00d4ff;
+            border-radius: 10px;
+            z-index: 999;
+            pointer-events: none;
+        }
+        
+        #loading {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+            display: flex; flex-direction: column; justify-content: center; align-items: center;
+            z-index: 10000; color: white;
+        }
+        
+        #loading h1 {
+            margin-bottom: 20px; font-size: 32px;
+            background: linear-gradient(45deg, #00d4ff, #7b2cbf);
+            -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+        }
+        
+        .loader {
+            width: 50px; height: 50px;
+            border: 5px solid rgba(255, 255, 255, 0.1);
+            border-top-color: #00d4ff; border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+        
+        @keyframes spin { to { transform: rotate(360deg); } }
         
         #gestureIndicator {
-            position: fixed;
-            top: 50%;
-            left: 50%;
+            position: fixed; top: 50%; left: 50%;
             transform: translate(-50%, -50%);
-            width: 80px;
-            height: 80px;
-            border: 4px solid rgba(255, 255, 255, 0.8);
-            border-radius: 50%;
-            pointer-events: none;
-            opacity: 0;
-            transition: opacity 0.3s;
-            z-index: 1000;
-            box-shadow: 0 0 20px rgba(100, 200, 255, 0.6);
+            width: 100px; height: 100px;
+            border: 5px solid rgba(0, 212, 255, 0.8);
+            border-radius: 50%; pointer-events: none;
+            opacity: 0; transition: opacity 0.3s; z-index: 1000;
+            box-shadow: 0 0 30px rgba(0, 212, 255, 0.6);
         }
         
         #gestureIndicator.active {
@@ -47,232 +83,458 @@
         
         @keyframes pulse {
             0%, 100% { transform: translate(-50%, -50%) scale(1); }
-            50% { transform: translate(-50%, -50%) scale(1.2); }
+            50% { transform: translate(-50%, -50%) scale(1.3); }
         }
         
         #instructions {
-            position: fixed;
-            bottom: 20px;
-            left: 50%;
+            position: fixed; bottom: 20px; left: 50%;
             transform: translateX(-50%);
-            background: rgba(0, 0, 0, 0.8);
-            color: white;
-            padding: 15px 25px;
-            border-radius: 10px;
-            font-size: 14px;
-            text-align: center;
-            z-index: 100;
-            pointer-events: none;
+            background: rgba(0, 0, 0, 0.9); color: white;
+            padding: 15px 25px; border-radius: 10px;
+            font-size: 14px; text-align: center; z-index: 100;
+            max-width: 90%;
         }
         
-        #loading {
+        #status {
             position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
-            display: flex;
-            flex-direction: column;
-            justify-content: center;
-            align-items: center;
-            z-index: 10000;
+            top: 10px;
+            left: 10px;
+            background: rgba(0, 0, 0, 0.8);
+            color: #00ff00;
+            padding: 10px 15px;
+            border-radius: 5px;
+            font-size: 12px;
+            z-index: 1000;
+            font-family: monospace;
+        }
+        
+        .hand-label {
+            position: fixed;
+            background: rgba(0, 212, 255, 0.9);
             color: white;
-        }
-        
-        #loading h1 {
-            margin-bottom: 20px;
-            font-size: 32px;
-            background: linear-gradient(45deg, #00d4ff, #7b2cbf);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-        }
-        
-        .loader {
-            width: 50px;
-            height: 50px;
-            border: 5px solid rgba(255, 255, 255, 0.1);
-            border-top-color: #00d4ff;
-            border-radius: 50%;
-            animation: spin 1s linear infinite;
-        }
-        
-        @keyframes spin {
-            to { transform: rotate(360deg); }
+            padding: 5px 10px;
+            border-radius: 5px;
+            font-size: 12px;
+            font-weight: bold;
+            pointer-events: none;
+            z-index: 998;
         }
     </style>
 </head>
 <body>
     <div id="loading">
-        <h1>🏠 VR Room Designer</h1>
+        <h1>🖐 VR Room Designer</h1>
         <div class="loader"></div>
-        <p style="margin-top: 20px;">Загрузка...</p>
+        <p style="margin-top: 20px;">Загрузка трекинга рук...</p>
+        <p style="margin-top: 10px; font-size: 12px; color: #aaa;">Разрешите доступ к камере</p>
     </div>
     
+    <video id="videoInput" autoplay playsinline></video>
+    <canvas id="handTrackingOverlay"></canvas>
+    
     <div id="gestureIndicator"></div>
+    <div id="status">Инициализация...</div>
     <div id="instructions">
-        🖐 Зажмите ЛКМ/коснитесь для жеста "щипок" | Перетаскивайте предметы | Колесо мыши - масштаб
+        🖐 Покажи руку камере | Соедини большой и указательный палец для жеста "щипок" | Перетаскивай предметы
     </div>
     
     <canvas id="gameCanvas"></canvas>
     
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/libs/cannon.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/cannon@0.6.2/build/cannon.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/hands@0.4.1646424915/hands.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils@0.3.1640029074/camera_utils.min.js"></script>
     
     <script>
         // ==================== ГЛОБАЛЬНЫЕ ПЕРЕМЕННЫЕ ====================
         let scene, camera, renderer, controls;
-        let world; // Cannon.js физический мир
-        let objects = []; // Массив объектов с физикой
+        let world;
+        let objects = [];
         let raycaster, mouse;
         let isPinching = false;
         let selectedObject = null;
-        let dragConstraint = null;
         let radialMenu = null;
         let isMenuOpen = false;
-        let handPosition = { x: 0, y: 0 };
         
-        // Категории предметов
+        // Трекинг рук
+        let hands;
+        let videoElement;
+        let canvasElement;
+        let canvasCtx;
+        let handSkeletons = { left: null, right: null };
+        let handData = { left: null, right: null };
+        
+        // Соединения между суставами (для создания костей)
+        const HAND_CONNECTIONS = [
+            [0, 1], [1, 2], [2, 3], [3, 4],       // Большой палец
+            [0, 5], [5, 6], [6, 7], [7, 8],       // Указательный
+            [0, 9], [9, 10], [10, 11], [11, 12],  // Средний
+            [0, 13], [13, 14], [14, 15], [15, 16],// Безымянный
+            [0, 17], [17, 18], [18, 19], [19, 20] // Мизинец
+        ];
+        
         const categories = {
             furniture: [
-                { name: ' Телевизор', type: 'tv', color: 0x2c3e50, width: 1.2, height: 0.8, depth: 0.2 },
+                { name: '📺 Телевизор', type: 'tv', color: 0x2c3e50, width: 1.2, height: 0.8, depth: 0.2 },
                 { name: '🛋️ Диван', type: 'sofa', color: 0xe74c3c, width: 2, height: 0.8, depth: 0.9 },
-                { name: ' Стул', type: 'chair', color: 0x3498db, width: 0.6, height: 0.9, depth: 0.6 },
-                { name: '📚 Стол', type: 'table', color: 0x8b4513, width: 1.5, height: 0.75, depth: 0.8 },
-                { name: '️ Кровать', type: 'bed', color: 0x9b59b6, width: 1.8, height: 0.5, depth: 2 },
-                { name: '🗄️ Шкаф', type: 'wardrobe', color: 0x95a5a6, width: 1.2, height: 2, depth: 0.6 },
-                { name: '💡 Лампа', type: 'lamp', color: 0xf1c40f, width: 0.3, height: 1.5, depth: 0.3 },
-                { name: '🪴 Растение', type: 'plant', color: 0x27ae60, width: 0.4, height: 1, depth: 0.4 }
+                { name: '🪑 Стул', type: 'chair', color: 0x3498db, width: 0.6, height: 0.9, depth: 0.6 },
+                { name: '📚 Стол', type: 'table', color: 0x8b4513, width: 1.5, height: 0.75, depth: 0.8 }
             ],
             toys: [
                 { name: '🧸 Мишка', type: 'bear', color: 0xd2691e, width: 0.4, height: 0.5, depth: 0.3 },
-                { name: ' Кубик', type: 'cube', color: 0xe74c3c, width: 0.3, height: 0.3, depth: 0.3 },
-                { name: '⚽ Мяч', type: 'ball', color: 0x2ecc71, width: 0.3, height: 0.3, depth: 0.3, sphere: true },
-                { name: '🚗 Машинка', type: 'car', color: 0x3498db, width: 0.4, height: 0.2, depth: 0.7 },
-                { name: '🎾 Теннисный мяч', type: 'tennis', color: 0xf1c40f, width: 0.15, height: 0.15, depth: 0.15, sphere: true },
-                { name: '🎱 Бильярдный шар', type: 'billiard', color: 0x8e44ad, width: 0.12, height: 0.12, depth: 0.12, sphere: true }
-            ],
-            decor: [
-                { name: '🖼️ Картина', type: 'painting', color: 0xf39c12, width: 0.8, height: 1, depth: 0.05 },
-                { name: '️ Часы', type: 'clock', color: 0x34495e, width: 0.4, height: 0.4, depth: 0.1 },
-                { name: '🏺 Ваза', type: 'vase', color: 0x1abc9c, width: 0.3, height: 0.6, depth: 0.3 },
-                { name: '📦 Коробка', type: 'box', color: 0x795548, width: 0.5, height: 0.4, depth: 0.5 }
+                { name: '🧊 Кубик', type: 'cube', color: 0xe74c3c, width: 0.3, height: 0.3, depth: 0.3 },
+                { name: '⚽ Мяч', type: 'ball', color: 0x2ecc71, width: 0.3, height: 0.3, depth: 0.3, sphere: true }
             ]
         };
         
         // ==================== ИНИЦИАЛИЗАЦИЯ ====================
-        function init() {
-            // Сцена Three.js
-            scene = new THREE.Scene();
-            scene.background = new THREE.Color(0x87ceeb);
-            scene.fog = new THREE.Fog(0x87ceeb, 10, 50);
-            
-            // Камера
-            camera = new THREE.PerspectiveCamera(
-                75,
-                window.innerWidth / window.innerHeight,
-                0.1,
-                1000
-            );
-            camera.position.set(5, 5, 8);
-            camera.lookAt(0, 1, 0);
-            
-            // Рендерер
-            renderer = new THREE.WebGLRenderer({ 
-                canvas: document.getElementById('gameCanvas'),
-                antialias: true 
-            });
-            renderer.setSize(window.innerWidth, window.innerHeight);
-            renderer.shadowMap.enabled = true;
-            renderer.shadowMap.type = THREE.PCFSoftShadowMap;
-            
-            // Контролы камеры
-            controls = new THREE.OrbitControls(camera, renderer.domElement);
-            controls.enableDamping = true;
-            controls.dampingFactor = 0.05;
-            controls.maxPolarAngle = Math.PI / 2 - 0.1;
-            controls.minDistance = 3;
-            controls.maxDistance = 15;
-            
-            // Физический мир Cannon.js
-            world = new CANNON.World();
-            world.gravity.set(0, -9.82, 0);
-            world.broadphase = new CANNON.NaiveBroadphase();
-            world.solver.iterations = 10;
-            
-            // Материалы физики
-            const defaultMaterial = new CANNON.Material('default');
-            const defaultContactMaterial = new CANNON.ContactMaterial(
-                defaultMaterial,
-                defaultMaterial,
-                {
-                    friction: 0.4,
-                    restitution: 0.3 // упругость
-                }
-            );
-            world.addContactMaterial(defaultContactMaterial);
-            
-            // Raycaster для взаимодействия
-            raycaster = new THREE.Raycaster();
-            mouse = new THREE.Vector2();
-            
-            // Создание комнаты
-            createRoom();
-            
-            // Освещение
-            setupLighting();
-            
-            // Обработчики событий
-            setupEventListeners();
-            
-            // Скрываем загрузку
-            setTimeout(() => {
+        async function init() {
+            try {
+                // Three.js сцена
+                scene = new THREE.Scene();
+                scene.background = new THREE.Color(0x87ceeb);
+                
+                camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+                camera.position.set(0, 2, 5);
+                camera.lookAt(0, 1, 0);
+                
+                renderer = new THREE.WebGLRenderer({ canvas: document.getElementById('gameCanvas'), antialias: true });
+                renderer.setSize(window.innerWidth, window.innerHeight);
+                renderer.shadowMap.enabled = true;
+                
+                controls = new THREE.OrbitControls(camera, renderer.domElement);
+                controls.enableDamping = true;
+                controls.dampingFactor = 0.05;
+                controls.maxPolarAngle = Math.PI / 2 - 0.1;
+                
+                // Физика
+                world = new CANNON.World();
+                world.gravity.set(0, -9.82, 0);
+                
+                raycaster = new THREE.Raycaster();
+                mouse = new THREE.Vector2();
+                
+                createRoom();
+                setupLighting();
+                
+                // Инициализация трекинга рук
+                await initHandTracking();
+                
                 document.getElementById('loading').style.display = 'none';
-            }, 1500);
-            
-            // Запуск цикла
-            animate();
+                updateStatus('✅ Готово! Покажи руку камере');
+                
+                animate();
+            } catch (error) {
+                console.error('Ошибка:', error);
+                document.getElementById('loading').innerHTML = 
+                    '<h1>Ошибка</h1><p style="color: #ff6b6b;">' + error.message + '</p>';
+            }
         }
         
-        // ==================== СОЗДАНИЕ КОМНАТЫ ====================
-        function createRoom() {
-            // Пол
-            const floorGeometry = new THREE.PlaneGeometry(10, 10);
-            const floorMaterial = new THREE.MeshStandardMaterial({ 
-                color: 0x8b7355,
-                roughness: 0.8,
-                metalness: 0.1
+        // ==================== ТРЕКИНГ РУК ====================
+        async function initHandTracking() {
+            videoElement = document.getElementById('videoInput');
+            canvasElement = document.getElementById('handTrackingOverlay');
+            canvasCtx = canvasElement.getContext('2d');
+            
+            canvasElement.width = 240;
+            canvasElement.height = 180;
+            
+            // Инициализация MediaPipe Hands
+            hands = new Hands({
+                locateFile: (file) => {
+                    return `https://cdn.jsdelivr.net/npm/@mediapipe/hands@0.4.1646424915/${file}`;
+                }
             });
+            
+            hands.setOptions({
+                maxNumHands: 2,
+                modelComplexity: 1,
+                minDetectionConfidence: 0.7,
+                minTrackingConfidence: 0.7
+            });
+            
+            hands.onResults(onHandResults);
+            
+            // Запуск камеры
+            const stream = await navigator.mediaDevices.getUserMedia({ 
+                video: { 
+                    width: 640, 
+                    height: 480,
+                    facingMode: 'user'
+                } 
+            });
+            videoElement.srcObject = stream;
+            
+            await new Promise(resolve => {
+                videoElement.onloadedmetadata = () => {
+                    videoElement.play();
+                    resolve();
+                };
+            });
+            
+            // Запуск обработки кадров
+            const camera = new Camera(videoElement, {
+                onFrame: async () => {
+                    await hands.send({ image: videoElement });
+                },
+                width: 640,
+                height: 480
+            });
+            camera.start();
+            
+            updateStatus('📷 Камера активна');
+        }
+        
+        function onHandResults(results) {
+            // Очистка canvas
+            canvasCtx.save();
+            canvasCtx.clearRect(0, 0, canvasElement.width, canvasElement.height);
+            
+            // Зеркальное отображение
+            canvasCtx.scale(-1, 1);
+            canvasCtx.translate(-canvasElement.width, 0);
+            
+            // Рисуем оригинальное видео
+            canvasCtx.drawImage(results.image, 0, 0, canvasElement.width, canvasElement.height);
+            
+            if (results.multiHandLandmarks && results.multiHandLandmarks.length > 0) {
+                results.multiHandLandmarks.forEach((landmarks, index) => {
+                    const handedness = results.multiHandedness[index].label;
+                    
+                    // Сохраняем данные руки
+                    handData[handedness.toLowerCase()] = landmarks;
+                    
+                    // Рисуем скелет на видео
+                    drawHandSkeleton(landmarks, handedness);
+                    
+                    // Обновляем 3D скелет
+                    updateHandSkeleton3D(landmarks, handedness);
+                    
+                    // Проверяем жест щипка
+                    checkPinchGesture(landmarks, handedness);
+                });
+            } else {
+                handData.left = null;
+                handData.right = null;
+            }
+            
+            canvasCtx.restore();
+        }
+        
+        function drawHandSkeleton(landmarks, handedness) {
+            const color = handedness === 'Left' ? '#00ff00' : '#ff00ff';
+            
+            // Рисуем соединения (кости)
+            canvasCtx.strokeStyle = color;
+            canvasCtx.lineWidth = 3;
+            
+            HAND_CONNECTIONS.forEach(([start, end]) => {
+                const startPoint = landmarks[start];
+                const endPoint = landmarks[end];
+                
+                canvasCtx.beginPath();
+                canvasCtx.moveTo(startPoint.x * canvasElement.width, startPoint.y * canvasElement.height);
+                canvasCtx.lineTo(endPoint.x * canvasElement.width, endPoint.y * canvasElement.height);
+                canvasCtx.stroke();
+            });
+            
+            // Рисуем суставы
+            landmarks.forEach((landmark, index) => {
+                const x = landmark.x * canvasElement.width;
+                const y = landmark.y * canvasElement.height;
+                
+                canvasCtx.fillStyle = index === 4 || index === 8 ? '#ffff00' : color; // Кончики пальцев желтые
+                canvasCtx.beginPath();
+                canvasCtx.arc(x, y, 5, 0, 2 * Math.PI);
+                canvasCtx.fill();
+                
+                canvasCtx.strokeStyle = '#ffffff';
+                canvasCtx.lineWidth = 2;
+                canvasCtx.stroke();
+            });
+        }
+        
+        function updateHandSkeleton3D(landmarks, handedness) {
+            const handKey = handedness.toLowerCase();
+            
+            // Создаем скелет если его нет
+            if (!handSkeletons[handKey]) {
+                handSkeletons[handKey] = createHandSkeleton3D(handKey);
+            }
+            
+            const skeleton = handSkeletons[handKey];
+            
+            // Обновляем позиции суставов
+            landmarks.forEach((landmark, index) => {
+                // Преобразуем координаты из normalized [0,1] в 3D пространство
+                const x = (landmark.x - 0.5) * 3; // Зеркалим и масштабируем
+                const y = -(landmark.y - 0.5) * 3;
+                const z = -landmark.z * 2;
+                
+                if (skeleton.joints[index]) {
+                    skeleton.joints[index].position.set(x, y + 2, z);
+                }
+            });
+            
+            // Обновляем кости
+            HAND_CONNECTIONS.forEach(([startIdx, endIdx], connIdx) => {
+                if (skeleton.bones[connIdx]) {
+                    const startJoint = skeleton.joints[startIdx];
+                    const endJoint = skeleton.joints[endIdx];
+                    
+                    const start = startJoint.position;
+                    const end = endJoint.position;
+                    
+                    // Вычисляем направление и длину
+                    const direction = new THREE.Vector3().subVectors(end, start);
+                    const length = direction.length();
+                    const midpoint = new THREE.Vector3().addVectors(start, end).multiplyScalar(0.5);
+                    
+                    // Обновляем кость
+                    skeleton.bones[connIdx].position.copy(midpoint);
+                    skeleton.bones[connIdx].scale.y = length;
+                    
+                    // Поворачиваем кость вдоль направления
+                    const axis = new THREE.Vector3(0, 1, 0);
+                    const quaternion = new THREE.Quaternion().setFromUnitVectors(axis, direction.normalize());
+                    skeleton.bones[connIdx].quaternion.copy(quaternion);
+                }
+            });
+        }
+        
+        function createHandSkeleton3D(handKey) {
+            const skeleton = { joints: [], bones: [] };
+            const color = handKey === 'left' ? 0x00ff00 : 0xff00ff;
+            
+            // Создаем суставы (сферы)
+            for (let i = 0; i < 21; i++) {
+                const size = (i === 4 || i === 8 || i === 12 || i === 16 || i === 20) ? 0.04 : 0.03;
+                const geometry = new THREE.SphereGeometry(size, 16, 16);
+                const material = new THREE.MeshStandardMaterial({ 
+                    color: color,
+                    emissive: color,
+                    emissiveIntensity: 0.5,
+                    metalness: 0.3,
+                    roughness: 0.7
+                });
+                const joint = new THREE.Mesh(geometry, material);
+                joint.castShadow = true;
+                scene.add(joint);
+                skeleton.joints.push(joint);
+            }
+            
+            // Создаем кости (цилиндры)
+            HAND_CONNECTIONS.forEach(() => {
+                const geometry = new THREE.CylinderGeometry(0.015, 0.015, 1, 8);
+                const material = new THREE.MeshStandardMaterial({ 
+                    color: color,
+                    emissive: color,
+                    emissiveIntensity: 0.3,
+                    metalness: 0.2,
+                    roughness: 0.8
+                });
+                const bone = new THREE.Mesh(geometry, material);
+                bone.castShadow = true;
+                scene.add(bone);
+                skeleton.bones.push(bone);
+            });
+            
+            return skeleton;
+        }
+        
+        function checkPinchGesture(landmarks, handedness) {
+            const thumbTip = landmarks[4];
+            const indexTip = landmarks[8];
+            
+            const distance = Math.sqrt(
+                Math.pow(thumbTip.x - indexTip.x, 2) +
+                Math.pow(thumbTip.y - indexTip.y, 2) +
+                Math.pow(thumbTip.z - indexTip.z, 2)
+            );
+            
+            const threshold = 0.05;
+            
+            if (distance < threshold && !isPinching) {
+                isPinching = true;
+                document.getElementById('gestureIndicator').classList.add('active');
+                updateStatus('🤏 Щипок обнаружен! (' + handedness + ')');
+                
+                // Пытаемся взять объект
+                tryGrabObject(thumbTip, handedness);
+            } else if (distance >= threshold && isPinching) {
+                isPinching = false;
+                document.getElementById('gestureIndicator').classList.remove('active');
+                updateStatus('✋ Рука открыта');
+                
+                // Отпускаем объект
+                if (selectedObject) {
+                    selectedObject.material.emissive = new THREE.Color(0x000000);
+                    selectedObject = null;
+                }
+            }
+            
+            // Если держим объект, перемещаем его
+            if (isPinching && selectedObject) {
+                const x = (thumbTip.x - 0.5) * 3;
+                const y = -(thumbTip.y - 0.5) * 3;
+                const z = -thumbTip.z * 2;
+                
+                const body = objects.find(obj => obj.mesh === selectedObject).body;
+                body.position.set(x, y + 2, z);
+                body.velocity.set(0, 0, 0);
+                body.angularVelocity.set(0, 0, 0);
+            }
+        }
+        
+        function tryGrabObject(thumbTip, handedness) {
+            const x = (thumbTip.x - 0.5) * 3;
+            const y = -(thumbTip.y - 0.5) * 3;
+            const z = -thumbTip.z * 2;
+            
+            const grabPosition = new THREE.Vector3(x, y + 2, z);
+            
+            // Ищем ближайший объект
+            let closestObject = null;
+            let closestDistance = Infinity;
+            
+            objects.forEach(obj => {
+                const distance = grabPosition.distanceTo(obj.mesh.position);
+                if (distance < 0.3 && distance < closestDistance) {
+                    closestDistance = distance;
+                    closestObject = obj.mesh;
+                }
+            });
+            
+            if (closestObject) {
+                selectedObject = closestObject;
+                selectedObject.material.emissive = new THREE.Color(0x444444);
+                updateStatus('🎯 Объект захвачен!');
+            } else if (!isMenuOpen) {
+                // Открываем меню
+                createRadialMenu(grabPosition);
+            }
+        }
+        
+        // ==================== КОМНАТА И ОСВЕЩЕНИЕ ====================
+        function createRoom() {
+            const floorGeometry = new THREE.PlaneGeometry(10, 10);
+            const floorMaterial = new THREE.MeshStandardMaterial({ color: 0x8b7355 });
             const floor = new THREE.Mesh(floorGeometry, floorMaterial);
             floor.rotation.x = -Math.PI / 2;
             floor.receiveShadow = true;
             scene.add(floor);
             
-            // Физика пола
             const floorShape = new CANNON.Plane();
             const floorBody = new CANNON.Body({ mass: 0 });
             floorBody.addShape(floorShape);
             floorBody.quaternion.setFromAxisAngle(new CANNON.Vec3(1, 0, 0), -Math.PI / 2);
             world.addBody(floorBody);
             
-            // Стены
-            createWall(0, 2.5, -5, 10, 5, 0.2, 0x95a5a6); // Задняя
-            createWall(0, 2.5, 5, 10, 5, 0.2, 0x95a5a6);  // Передняя
-            createWall(-5, 2.5, 0, 0.2, 5, 10, 0x95a5a6); // Левая
-            createWall(5, 2.5, 0, 0.2, 5, 10, 0x95a5a6);  // Правая
-            
-            // Ковер
-            const carpetGeometry = new THREE.PlaneGeometry(4, 3);
-            const carpetMaterial = new THREE.MeshStandardMaterial({ 
-                color: 0xc0392b,
-                roughness: 1
-            });
-            const carpet = new THREE.Mesh(carpetGeometry, carpetMaterial);
-            carpet.rotation.x = -Math.PI / 2;
-            carpet.position.y = 0.01;
-            carpet.receiveShadow = true;
-            scene.add(carpet);
+            createWall(0, 2.5, -5, 10, 5, 0.2, 0x95a5a6);
+            createWall(-5, 2.5, 0, 0.2, 5, 10, 0x95a5a6);
+            createWall(5, 2.5, 0, 0.2, 5, 10, 0x95a5a6);
         }
         
         function createWall(x, y, z, w, h, d, color) {
@@ -280,11 +542,9 @@
             const material = new THREE.MeshStandardMaterial({ color: color });
             const wall = new THREE.Mesh(geometry, material);
             wall.position.set(x, y, z);
-            wall.castShadow = true;
             wall.receiveShadow = true;
             scene.add(wall);
             
-            // Физика стены
             const shape = new CANNON.Box(new CANNON.Vec3(w/2, h/2, d/2));
             const body = new CANNON.Body({ mass: 0 });
             body.addShape(shape);
@@ -292,95 +552,55 @@
             world.addBody(body);
         }
         
-        // ==================== ОСВЕЩЕНИЕ ====================
         function setupLighting() {
-            // Ambient light
             const ambientLight = new THREE.AmbientLight(0xffffff, 0.6);
             scene.add(ambientLight);
             
-            // Directional light (солнце)
             const dirLight = new THREE.DirectionalLight(0xffffff, 0.8);
             dirLight.position.set(5, 10, 5);
             dirLight.castShadow = true;
-            dirLight.shadow.camera.left = -10;
-            dirLight.shadow.camera.right = 10;
-            dirLight.shadow.camera.top = 10;
-            dirLight.shadow.camera.bottom = -10;
-            dirLight.shadow.mapSize.width = 2048;
-            dirLight.shadow.mapSize.height = 2048;
             scene.add(dirLight);
-            
-            // Точечный свет (лампа)
-            const pointLight = new THREE.PointLight(0xffaa00, 0.5, 10);
-            pointLight.position.set(0, 3, 0);
-            scene.add(pointLight);
         }
         
-        // ==================== СОЗДАНИЕ ПРЕДМЕТОВ ====================
+        // ==================== ПРЕДМЕТЫ ====================
         function createItem(itemData, position) {
-            let geometry, mesh;
-            
+            let geometry;
             if (itemData.sphere) {
                 geometry = new THREE.SphereGeometry(itemData.width / 2, 32, 32);
             } else {
-                geometry = new THREE.BoxGeometry(
-                    itemData.width,
-                    itemData.height,
-                    itemData.depth
-                );
+                geometry = new THREE.BoxGeometry(itemData.width, itemData.height, itemData.depth);
             }
             
-            const material = new THREE.MeshStandardMaterial({ 
-                color: itemData.color,
-                roughness: 0.5,
-                metalness: 0.1
-            });
-            
-            mesh = new THREE.Mesh(geometry, material);
+            const material = new THREE.MeshStandardMaterial({ color: itemData.color });
+            const mesh = new THREE.Mesh(geometry, material);
             mesh.position.copy(position);
             mesh.castShadow = true;
-            mesh.receiveShadow = true;
             mesh.userData = { itemData: itemData, isDraggable: true };
-            
             scene.add(mesh);
             
-            // Физика
             let shape;
             if (itemData.sphere) {
                 shape = new CANNON.Sphere(itemData.width / 2);
             } else {
-                shape = new CANNON.Box(new CANNON.Vec3(
-                    itemData.width / 2,
-                    itemData.height / 2,
-                    itemData.depth / 2
-                ));
+                shape = new CANNON.Box(new CANNON.Vec3(itemData.width/2, itemData.height/2, itemData.depth/2));
             }
             
-            const body = new CANNON.Body({ 
-                mass: 1,
-                position: new CANNON.Vec3(position.x, position.y, position.z)
-            });
+            const body = new CANNON.Body({ mass: 1 });
             body.addShape(shape);
-            body.linearDamping = 0.3;
-            body.angularDamping = 0.3;
-            
+            body.position.set(position.x, position.y, position.z);
             world.addBody(body);
             
             objects.push({ mesh: mesh, body: body });
-            
             return mesh;
         }
         
-        // ==================== РАДИАЛЬНОЕ МЕНЮ ====================
+        // ==================== МЕНЮ ====================
         function createRadialMenu(position) {
-            if (radialMenu) {
-                scene.remove(radialMenu);
-            }
+            if (radialMenu) scene.remove(radialMenu);
             
             radialMenu = new THREE.Group();
             radialMenu.position.copy(position);
             radialMenu.position.y = 1.5;
-            radialMenu.lookAt(camera.position);
             
             const categoriesList = Object.keys(categories);
             const radius = 1.2;
@@ -391,269 +611,44 @@
                 const x = Math.cos(angle) * radius;
                 const z = Math.sin(angle) * radius;
                 
-                // Кнопка категории
                 const buttonGeometry = new THREE.CircleGeometry(0.3, 32);
-                const buttonMaterial = new THREE.MeshBasicMaterial({ 
-                    color: 0x3498db,
-                    transparent: true,
-                    opacity: 0.9
-                });
+                const buttonMaterial = new THREE.MeshBasicMaterial({ color: 0x3498db, transparent: true, opacity: 0.9 });
                 const button = new THREE.Mesh(buttonGeometry, buttonMaterial);
                 button.position.set(x, 0, z);
                 button.rotation.x = -Math.PI / 2;
                 button.userData = { category: category, isMenuButton: true };
-                
-                // Текст (эмодзи)
-                const emojis = { furniture: '🪑', toys: '', decor: '🖼️' };
-                
                 radialMenu.add(button);
             });
             
-            // Центр меню
-            const centerGeometry = new THREE.CircleGeometry(0.25, 32);
-            const centerMaterial = new THREE.MeshBasicMaterial({ 
-                color: 0xe74c3c,
-                transparent: true,
-                opacity: 0.95
-            });
-            const center = new THREE.Mesh(centerGeometry, centerMaterial);
-            center.rotation.x = -Math.PI / 2;
-            center.userData = { isCloseButton: true };
-            radialMenu.add(center);
-            
             scene.add(radialMenu);
             isMenuOpen = true;
+            updateStatus('📋 Меню открыто');
         }
         
-        function showCategoryItems(category) {
-            if (!radialMenu) return;
-            
-            // Очищаем предыдущие предметы
-            while(radialMenu.children.length > 0) {
-                const child = radialMenu.children[0];
-                radialMenu.remove(child);
-            }
-            
-            const items = categories[category];
-            const cols = 3;
-            const spacing = 0.5;
-            const startX = -((Math.min(items.length, cols) - 1) * spacing) / 2;
-            
-            items.forEach((item, index) => {
-                const row = Math.floor(index / cols);
-                const col = index % cols;
-                
-                const x = startX + col * spacing;
-                const z = row * spacing;
-                
-                // Иконка предмета
-                const geometry = new THREE.BoxGeometry(0.3, 0.3, 0.3);
-                const material = new THREE.MeshBasicMaterial({ 
-                    color: item.color,
-                    transparent: true,
-                    opacity: 0.9
-                });
-                const icon = new THREE.Mesh(geometry, material);
-                icon.position.set(x, 0.15, z);
-                icon.userData = { item: item, isItemIcon: true };
-                
-                radialMenu.add(icon);
-            });
-            
-            // Кнопка назад
-            const backGeometry = new THREE.CircleGeometry(0.2, 32);
-            const backMaterial = new THREE.MeshBasicMaterial({ 
-                color: 0x95a5a6,
-                transparent: true,
-                opacity: 0.9
-            });
-            const backButton = new THREE.Mesh(backGeometry, backMaterial);
-            backButton.position.set(0, 0.15, 2);
-            backButton.rotation.x = -Math.PI / 2;
-            backButton.userData = { isBackButton: true };
-            radialMenu.add(backButton);
+        function updateStatus(text) {
+            document.getElementById('status').textContent = text;
         }
         
-        function closeMenu() {
-            if (radialMenu) {
-                scene.remove(radialMenu);
-                radialMenu = null;
-            }
-            isMenuOpen = false;
-        }
-        
-        // ==================== ОБРАБОТЧИКИ СОБЫТИЙ ====================
-        function setupEventListeners() {
-            const canvas = renderer.domElement;
-            
-            // Мышь/тач начало
-            canvas.addEventListener('mousedown', onPointerDown);
-            canvas.addEventListener('touchstart', onPointerDown, { passive: false });
-            
-            // Мышь/тач движение
-            canvas.addEventListener('mousemove', onPointerMove);
-            canvas.addEventListener('touchmove', onPointerMove, { passive: false });
-            
-            // Мышь/тач конец
-            canvas.addEventListener('mouseup', onPointerUp);
-            canvas.addEventListener('touchend', onPointerUp);
-            
-            // Колесо мыши
-            canvas.addEventListener('wheel', onWheel);
-            
-            // Изменение размера окна
-            window.addEventListener('resize', onWindowResize);
-        }
-        
-        function onPointerDown(event) {
-            event.preventDefault();
-            
-            const clientX = event.touches ? event.touches[0].clientX : event.clientX;
-            const clientY = event.touches ? event.touches[0].clientY : event.clientY;
-            
-            mouse.x = (clientX / window.innerWidth) * 2 - 1;
-            mouse.y = -(clientY / window.innerHeight) * 2 + 1;
-            
-            handPosition.x = clientX;
-            handPosition.y = clientY;
-            
-            // Показываем индикатор жеста
-            const indicator = document.getElementById('gestureIndicator');
-            indicator.classList.add('active');
-            
-            // Raycast
-            raycaster.setFromCamera(mouse, camera);
-            
-            if (isMenuOpen) {
-                // Проверка клика по меню
-                const intersects = raycaster.intersectObjects(radialMenu.children, true);
-                if (intersects.length > 0) {
-                    const object = intersects[0].object;
-                    handleMenuClick(object);
-                }
-            } else {
-                // Проверка клика по объектам
-                const intersectableObjects = objects.map(obj => obj.mesh);
-                const intersects = raycaster.intersectObjects(intersectableObjects);
-                
-                if (intersects.length > 0) {
-                    selectedObject = intersects[0].object;
-                    isPinching = true;
-                    controls.enabled = false;
-                    
-                    // Создаем ограничение для перетаскивания
-                    const body = objects.find(obj => obj.mesh === selectedObject).body;
-                    
-                    // Визуальная обратная связь
-                    selectedObject.material.emissive = new THREE.Color(0x444444);
-                } else {
-                    // Открываем меню
-                    const point = new THREE.Vector3(0, 0, -5);
-                    raycaster.ray.at(3, point);
-                    createRadialMenu(point);
-                }
-            }
-        }
-        
-        function onPointerMove(event) {
-            event.preventDefault();
-            
-            const clientX = event.touches ? event.touches[0].clientX : event.clientX;
-            const clientY = event.touches ? event.touches[0].clientY : event.clientY;
-            
-            mouse.x = (clientX / window.innerWidth) * 2 - 1;
-            mouse.y = -(clientY / window.innerHeight) * 2 + 1;
-            
-            if (isPinching && selectedObject) {
-                // Перемещение объекта
-                const vector = new THREE.Vector3(mouse.x, mouse.y, 0.5);
-                vector.unproject(camera);
-                
-                const dir = vector.sub(camera.position).normalize();
-                const distance = -camera.position.z / dir.z;
-                const pos = camera.position.clone().add(dir.multiplyScalar(distance));
-                
-                const body = objects.find(obj => obj.mesh === selectedObject).body;
-                body.position.set(pos.x, pos.y, pos.z);
-                body.velocity.set(0, 0, 0);
-                body.angularVelocity.set(0, 0, 0);
-            }
-        }
-        
-        function onPointerUp(event) {
-            event.preventDefault();
-            
-            // Скрываем индикатор жеста
-            const indicator = document.getElementById('gestureIndicator');
-            indicator.classList.remove('active');
-            
-            if (isPinching && selectedObject) {
-                // Отпускаем объект
-                selectedObject.material.emissive = new THREE.Color(0x000000);
-                selectedObject = null;
-                isPinching = false;
-                controls.enabled = true;
-            }
-        }
-        
-        function handleMenuClick(object) {
-            if (object.userData.isCloseButton) {
-                closeMenu();
-            } else if (object.userData.category) {
-                showCategoryItems(object.userData.category);
-            } else if (object.userData.isBackButton) {
-                // Возврат к категориям
-                if (radialMenu) {
-                    scene.remove(radialMenu);
-                }
-                createRadialMenu(new THREE.Vector3(0, 1.5, -3));
-            } else if (object.userData.item) {
-                // Создаем предмет
-                const item = object.userData.item;
-                createItem(item, new THREE.Vector3(0, 2, 0));
-                closeMenu();
-            }
-        }
-        
-        function onWheel(event) {
-            event.preventDefault();
-            // Масштаб уже обрабатывается OrbitControls
-        }
-        
-        function onWindowResize() {
-            camera.aspect = window.innerWidth / window.innerHeight;
-            camera.updateProjectionMatrix();
-            renderer.setSize(window.innerWidth, window.innerHeight);
-        }
-        
-        // ==================== ИГРОВОЙ ЦИКЛ ====================
+        // ==================== АНИМАЦИЯ ====================
         function animate() {
             requestAnimationFrame(animate);
+            world.step(0.016);
             
-            const delta = 0.016;
-            
-            // Обновление физики
-            world.step(delta);
-            
-            // Синхронизация Three.js с Cannon.js
             objects.forEach(obj => {
                 obj.mesh.position.copy(obj.body.position);
                 obj.mesh.quaternion.copy(obj.body.quaternion);
             });
             
-            // Обновление контролов
             controls.update();
-            
-            // Анимация меню
-            if (radialMenu) {
-                radialMenu.lookAt(camera.position);
-            }
-            
             renderer.render(scene, camera);
         }
         
-        // ==================== ЗАПУСК ====================
-        window.addEventListener('load', init);
+        // Запуск
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', init);
+        } else {
+            init();
+        }
     </script>
 </body>
 </html>
