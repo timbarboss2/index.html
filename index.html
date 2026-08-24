@@ -2,14 +2,16 @@
 <html lang="ru">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>VR Room - Front Camera</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>VR Room Designer PRO</title>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body { 
             overflow: hidden; 
-            font-family: Arial, sans-serif; 
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
             background: #000;
+            width: 100vw;
+            height: 100vh;
         }
         
         #videoInput {
@@ -47,7 +49,7 @@
             position: fixed; 
             top: 0; left: 0; 
             width: 100%; height: 100%;
-            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             display: flex; 
             flex-direction: column; 
             justify-content: center; 
@@ -57,19 +59,24 @@
         }
         
         #loading h1 {
-            margin-bottom: 20px; 
-            font-size: 32px;
-            background: linear-gradient(45deg, #00d4ff, #7b2cbf);
-            -webkit-background-clip: text; 
-            -webkit-text-fill-color: transparent;
+            margin-bottom: 30px; 
+            font-size: 48px;
+            font-weight: bold;
+            text-shadow: 0 4px 20px rgba(0,0,0,0.3);
+            animation: fadeIn 1s ease-in;
+        }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(-20px); }
+            to { opacity: 1; transform: translateY(0); }
         }
         
         .loader {
-            width: 50px; height: 50px;
-            border: 5px solid rgba(255, 255, 255, 0.1);
-            border-top-color: #00d4ff; 
+            width: 80px; height: 80px;
+            border: 6px solid rgba(255, 255, 255, 0.2);
+            border-top-color: #fff;
             border-radius: 50%;
-            animation: spin 1s linear infinite;
+            animation: spin 0.8s linear infinite;
         }
         
         @keyframes spin { to { transform: rotate(360deg); } }
@@ -79,94 +86,118 @@
             top: 50%;
             left: 50%;
             transform: translate(-50%, -50%);
-            background: linear-gradient(45deg, #00d4ff, #7b2cbf);
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             color: white;
             border: none;
-            padding: 20px 50px;
-            border-radius: 30px;
-            font-size: 24px;
+            padding: 25px 60px;
+            border-radius: 50px;
+            font-size: 28px;
             font-weight: bold;
             cursor: pointer;
             z-index: 10001;
-            box-shadow: 0 10px 40px rgba(0, 212, 255, 0.6);
+            box-shadow: 0 15px 50px rgba(102, 126, 234, 0.6);
+            transition: all 0.3s ease;
+            backdrop-filter: blur(10px);
+        }
+        
+        #startButton:hover {
+            transform: translate(-50%, -50%) scale(1.05);
+            box-shadow: 0 20px 60px rgba(102, 126, 234, 0.8);
         }
         
         #status {
             position: fixed;
             top: 20px;
             left: 20px;
-            background: rgba(0, 0, 0, 0.9);
-            color: #00ff00;
-            padding: 12px 18px;
-            border-radius: 10px;
+            background: rgba(0, 0, 0, 0.7);
+            backdrop-filter: blur(20px);
+            color: #00ff88;
+            padding: 15px 25px;
+            border-radius: 15px;
             font-size: 14px;
             z-index: 1000;
-            border: 2px solid #00ff00;
-        }
-        
-        #handInfo {
-            position: fixed;
-            top: 80px;
-            left: 20px;
-            background: rgba(0, 0, 0, 0.9);
-            color: #00d4ff;
-            padding: 10px 15px;
-            border-radius: 8px;
-            font-size: 14px;
-            z-index: 1000;
-            border: 2px solid #00d4ff;
+            font-weight: 600;
+            border: 2px solid rgba(0, 255, 136, 0.3);
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
         }
         
         #instructions {
             position: fixed;
-            bottom: 20px;
+            bottom: 30px;
             left: 50%;
             transform: translateX(-50%);
-            background: rgba(0, 0, 0, 0.9);
+            background: rgba(0, 0, 0, 0.8);
+            backdrop-filter: blur(20px);
             color: white;
-            padding: 15px 25px;
-            border-radius: 12px;
-            font-size: 14px;
+            padding: 20px 40px;
+            border-radius: 20px;
+            font-size: 16px;
             text-align: center;
             z-index: 100;
-            border: 2px solid #00d4ff;
+            border: 2px solid rgba(255, 255, 255, 0.2);
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.4);
+            max-width: 90%;
         }
         
         #gestureIndicator {
             position: fixed; 
-            width: 100px; height: 100px;
-            border: 5px solid rgba(0, 255, 0, 0.9);
+            width: 120px; height: 120px;
+            border: 6px solid rgba(0, 255, 136, 0.9);
             border-radius: 50%; 
             pointer-events: none;
             opacity: 0; 
+            transition: opacity 0.2s, transform 0.2s;
             z-index: 100;
-            box-shadow: 0 0 30px rgba(0, 255, 0, 0.8);
+            box-shadow: 0 0 50px rgba(0, 255, 136, 0.8);
             transform: scaleX(-1);
         }
         
         #gestureIndicator.active {
             opacity: 1;
+            transform: scaleX(-1) scale(1.2);
+            animation: pulse 0.5s ease-in-out infinite;
+        }
+        
+        @keyframes pulse {
+            0%, 100% { box-shadow: 0 0 50px rgba(0, 255, 136, 0.8); }
+            50% { box-shadow: 0 0 80px rgba(0, 255, 136, 1); }
+        }
+        
+        #objectCounter {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: rgba(0, 0, 0, 0.7);
+            backdrop-filter: blur(20px);
+            color: #ffaa00;
+            padding: 15px 25px;
+            border-radius: 15px;
+            font-size: 16px;
+            font-weight: bold;
+            z-index: 1000;
+            border: 2px solid rgba(255, 170, 0, 0.3);
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
         }
     </style>
 </head>
 <body>
     <div id="loading">
-        <h1> VR Room Designer</h1>
+        <h1>🎮 VR Room Designer PRO</h1>
         <div class="loader"></div>
-        <p style="margin-top: 20px;">Загрузка...</p>
+        <p style="margin-top: 30px; font-size: 20px; font-weight: 600;">Загрузка...</p>
     </div>
     
-    <button id="startButton">🎮 НАЧАТЬ</button>
+    <button id="startButton">🚀 НАЧАТЬ ИГРУ</button>
     
     <video id="videoInput" autoplay playsinline muted></video>
     <canvas id="gameCanvas"></canvas>
     <canvas id="handOverlay"></canvas>
     
     <div id="gestureIndicator"></div>
-    <div id="handInfo"> Фронтальная камера</div>
-    <div id="status">Нажми кнопку для старта</div>
+    <div id="objectCounter">Объекты: 0</div>
+    <div id="status">Готово к запуску</div>
     <div id="instructions">
-        ✋ Покажи руку |  Щипок = взять |  Двойной щипок = меню
+        ✋ Покажи руку | 🤏 Щипок = взять/бросить | 🎯 Двойной щипок = меню
     </div>
     
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
@@ -177,17 +208,19 @@
     <script>
         let scene, camera, renderer, world;
         let physicsObjects = [];
-        let handSkeletons = { left: null, right: null };
+        let handSkeleton = null;
         let hands, videoElement, overlayCanvas, overlayCtx;
-        let isPinching = { left: false, right: false };
+        let isPinching = false;
         let grabbedObject = null;
         let pinchCount = 0;
         let lastPinchTime = 0;
         let radialMenu = null;
         let isMenuOpen = false;
         let gameStarted = false;
-        let currentHand = null;
         let lastLandmarks = null;
+        
+        let handPositionHistory = [];
+        const HISTORY_SIZE = 5;
         
         const HAND_CONNECTIONS = [
             [0, 1], [1, 2], [2, 3], [3, 4],
@@ -198,11 +231,28 @@
         ];
         
         const spawnItems = [
-            { name: '🧊 Красный куб', type: 'cube', color: 0xe74c3c, size: 0.3 },
-            { name: '🧊 Синий куб', type: 'cube', color: 0x3498db, size: 0.3 },
-            { name: '⚽ Мяч', type: 'ball', color: 0x2c3e50, size: 0.25 },
-            { name: '🎾 Теннисный', type: 'ball', color: 0xcddc39, size: 0.15 }
+            { name: '🧊 Красный куб', type: 'cube', color: 0xff4444, size: 0.3, mass: 1 },
+            { name: '🧊 Синий куб', type: 'cube', color: 0x4488ff, size: 0.3, mass: 1 },
+            { name: '🧊 Зелёный куб', type: 'cube', color: 0x44ff88, size: 0.3, mass: 1 },
+            { name: '🧊 Жёлтый куб', type: 'cube', color: 0xffff44, size: 0.3, mass: 1 },
+            { name: '⚽ Футбол', type: 'ball', color: 0x222222, size: 0.25, mass: 0.5 },
+            { name: '🎾 Теннис', type: 'ball', color: 0xccff00, size: 0.15, mass: 0.3 },
+            { name: '🏀 Баскет', type: 'ball', color: 0xff6600, size: 0.3, mass: 0.6 },
+            { name: '🎱 Бильярд', type: 'ball', color: 0x111111, size: 0.12, mass: 0.4 }
         ];
+        
+        // Материалы (кэшированные для оптимизации)
+        const materials = {};
+        function getMaterial(color) {
+            if (!materials[color]) {
+                materials[color] = new THREE.MeshLambertMaterial({ 
+                    color: color,
+                    emissive: color,
+                    emissiveIntensity: 0.1
+                });
+            }
+            return materials[color];
+        }
         
         document.getElementById('startButton').addEventListener('click', async () => {
             document.getElementById('startButton').style.display = 'none';
@@ -216,11 +266,11 @@
                 await initCamera();
                 document.getElementById('loading').style.display = 'none';
                 gameStarted = true;
-                updateStatus('✅ Фронтальная камера активна!');
+                updateStatus('✅ Камера активна!');
                 animate();
             } catch (error) {
                 console.error('Ошибка:', error);
-                alert('Ошибка камеры: ' + error.message);
+                alert('Ошибка: ' + error.message);
             }
         }
         
@@ -233,39 +283,46 @@
             renderer = new THREE.WebGLRenderer({ 
                 canvas: document.getElementById('gameCanvas'), 
                 antialias: false,
-                alpha: true
+                alpha: true,
+                powerPreference: "high-performance"
             });
             renderer.setSize(window.innerWidth, window.innerHeight);
+            renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
             renderer.setClearColor(0x000000, 0);
             
-            const ambientLight = new THREE.AmbientLight(0xffffff, 0.8);
+            const ambientLight = new THREE.AmbientLight(0xffffff, 0.9);
             scene.add(ambientLight);
             
+            const dirLight = new THREE.DirectionalLight(0xffffff, 0.7);
+            dirLight.position.set(5, 10, 5);
+            scene.add(dirLight);
+            
             createRoom();
+            window.addEventListener('resize', onWindowResize);
         }
         
         function createRoom() {
-            const floorGeometry = new THREE.PlaneGeometry(10, 10);
-            const floorMaterial = new THREE.MeshBasicMaterial({ 
-                color: 0x8b7355,
+            const floorGeometry = new THREE.PlaneGeometry(12, 12);
+            const floorMaterial = new THREE.MeshLambertMaterial({ 
+                color: 0x886644,
                 transparent: true,
-                opacity: 0.3
+                opacity: 0.4
             });
             const floor = new THREE.Mesh(floorGeometry, floorMaterial);
             floor.rotation.x = -Math.PI / 2;
             scene.add(floor);
             
-            createWall(0, 2.5, -5, 10, 5, 0.2, 0x95a5a6);
-            createWall(-5, 2.5, 0, 0.2, 5, 10, 0x95a5a6);
-            createWall(5, 2.5, 0, 0.2, 5, 10, 0x95a5a6);
+            createWall(0, 3, -6, 12, 6, 0.2, 0x888888);
+            createWall(-6, 3, 0, 0.2, 6, 12, 0x888888);
+            createWall(6, 3, 0, 0.2, 6, 12, 0x888888);
         }
         
         function createWall(x, y, z, w, h, d, color) {
             const geometry = new THREE.BoxGeometry(w, h, d);
-            const material = new THREE.MeshBasicMaterial({ 
+            const material = new THREE.MeshLambertMaterial({ 
                 color: color,
                 transparent: true,
-                opacity: 0.2
+                opacity: 0.25
             });
             const wall = new THREE.Mesh(geometry, material);
             wall.position.set(x, y, z);
@@ -284,9 +341,9 @@
             floorBody.quaternion.setFromAxisAngle(new CANNON.Vec3(1, 0, 0), -Math.PI / 2);
             world.addBody(floorBody);
             
-            createPhysicsWall(0, 2.5, -5, 10, 5, 0.2);
-            createPhysicsWall(-5, 2.5, 0, 0.2, 5, 10);
-            createPhysicsWall(5, 2.5, 0, 0.2, 5, 10);
+            createPhysicsWall(0, 3, -6, 12, 6, 0.2);
+            createPhysicsWall(-6, 3, 0, 0.2, 6, 12);
+            createPhysicsWall(6, 3, 0, 0.2, 6, 12);
         }
         
         function createPhysicsWall(x, y, z, w, h, d) {
@@ -312,21 +369,20 @@
             });
             
             hands.setOptions({
-                maxNumHands: 2,
+                maxNumHands: 1,
                 modelComplexity: 1,
-                minDetectionConfidence: 0.5,
-                minTrackingConfidence: 0.5,
-                selfieMode: true // ФРОНТАЛЬНАЯ КАМЕРА
+                minDetectionConfidence: 0.6,
+                minTrackingConfidence: 0.6,
+                selfieMode: false
             });
             
             hands.onResults(onHandResults);
             
-            // ФРОНТАЛЬНАЯ КАМЕРА
             const stream = await navigator.mediaDevices.getUserMedia({ 
                 video: { 
                     width: { ideal: 1280 },
                     height: { ideal: 720 },
-                    facingMode: 'user' // <-- ФРОНТАЛЬНАЯ КАМЕРА
+                    facingMode: 'user'
                 } 
             });
             
@@ -353,38 +409,36 @@
             
             if (results.multiHandLandmarks && results.multiHandLandmarks.length > 0) {
                 const landmarks = results.multiHandLandmarks[0];
-                const handedness = results.multiHandedness[0].label;
-                
-                currentHand = handedness.toLowerCase();
                 lastLandmarks = landmarks;
                 
-                document.getElementById('handInfo').textContent = 
-                    `Рука: ${currentHand === 'left' ? '🤚 ЛЕВАЯ' : '🤚 ПРАВАЯ'}`;
-                
-                drawHandSkeleton(landmarks, currentHand);
-                updateHandSkeleton3D(landmarks, currentHand);
-                checkGestures(landmarks, currentHand);
-                interactWithObjects(landmarks, currentHand);
+                drawHandSkeleton(landmarks);
+                updateHandSkeleton3D(landmarks);
+                updateHandVelocity(landmarks);
+                checkGestures(landmarks);
+                interactWithObjects(landmarks);
                 
                 if (isMenuOpen && radialMenu) {
                     checkMenuInteraction(landmarks);
                 }
                 
             } else {
-                currentHand = null;
                 lastLandmarks = null;
-                document.getElementById('handInfo').textContent = ' Фронтальная камера';
+                
+                if (handSkeleton) {
+                    handSkeleton.joints.forEach(j => j.visible = false);
+                    handSkeleton.bones.forEach(b => b.visible = false);
+                }
                 
                 if (grabbedObject) releaseObject();
             }
         }
         
-        function drawHandSkeleton(landmarks, handedness) {
-            const color = handedness === 'left' ? '#00ff00' : '#ff00ff';
-            
-            overlayCtx.strokeStyle = color;
-            overlayCtx.lineWidth = 3;
+        function drawHandSkeleton(landmarks) {
+            overlayCtx.strokeStyle = '#00ff88';
+            overlayCtx.lineWidth = 4;
             overlayCtx.lineCap = 'round';
+            overlayCtx.shadowBlur = 10;
+            overlayCtx.shadowColor = '#00ff88';
             
             HAND_CONNECTIONS.forEach(([start, end]) => {
                 const x1 = landmarks[start].x * overlayCanvas.width;
@@ -403,64 +457,67 @@
                 const y = landmark.y * overlayCanvas.height;
                 const isFingertip = [4, 8, 12, 16, 20].includes(index);
                 
-                overlayCtx.fillStyle = isFingertip ? '#ffff00' : color;
+                overlayCtx.fillStyle = isFingertip ? '#ffff00' : '#00ff88';
+                overlayCtx.shadowBlur = isFingertip ? 15 : 8;
+                overlayCtx.shadowColor = isFingertip ? '#ffff00' : '#00ff88';
                 overlayCtx.beginPath();
-                overlayCtx.arc(x, y, isFingertip ? 8 : 5, 0, 2 * Math.PI);
+                overlayCtx.arc(x, y, isFingertip ? 10 : 6, 0, 2 * Math.PI);
                 overlayCtx.fill();
             });
+            
+            overlayCtx.shadowBlur = 0;
         }
         
-        function updateHandSkeleton3D(landmarks, handedness) {
-            if (!handSkeletons[handedness]) {
-                handSkeletons[handedness] = createHandSkeleton3D(handedness);
+        function updateHandSkeleton3D(landmarks) {
+            if (!handSkeleton) {
+                handSkeleton = createHandSkeleton3D();
             }
             
-            const skeleton = handSkeletons[handedness];
-            const otherHand = handedness === 'left' ? 'right' : 'left';
-            
-            if (handSkeletons[otherHand]) {
-                handSkeletons[otherHand].joints.forEach(j => j.visible = false);
-                handSkeletons[otherHand].bones.forEach(b => b.visible = false);
-            }
-            
-            skeleton.joints.forEach(j => j.visible = true);
-            skeleton.bones.forEach(b => b.visible = true);
+            handSkeleton.joints.forEach(j => j.visible = true);
+            handSkeleton.bones.forEach(b => b.visible = true);
             
             landmarks.forEach((landmark, index) => {
-                const x = (0.5 - landmark.x) * 4;
-                const y = (0.5 - landmark.y) * 4;
-                const z = -landmark.z * 3;
+                const x = (landmark.x - 0.5) * 5;
+                const y = (0.5 - landmark.y) * 5;
+                const z = -landmark.z * 4;
                 
-                if (skeleton.joints[index]) {
-                    skeleton.joints[index].position.set(x, y + 2, z);
+                if (handSkeleton.joints[index]) {
+                    handSkeleton.joints[index].position.set(x, y + 2, z);
                 }
             });
             
             HAND_CONNECTIONS.forEach(([startIdx, endIdx], connIdx) => {
-                if (skeleton.bones[connIdx]) {
-                    const start = skeleton.joints[startIdx].position;
-                    const end = skeleton.joints[endIdx].position;
+                if (handSkeleton.bones[connIdx]) {
+                    const start = handSkeleton.joints[startIdx].position;
+                    const end = handSkeleton.joints[endIdx].position;
                     const direction = new THREE.Vector3().subVectors(end, start);
                     const length = direction.length();
                     const midpoint = new THREE.Vector3().addVectors(start, end).multiplyScalar(0.5);
                     
-                    skeleton.bones[connIdx].position.copy(midpoint);
-                    skeleton.bones[connIdx].scale.y = length;
+                    handSkeleton.bones[connIdx].position.copy(midpoint);
+                    handSkeleton.bones[connIdx].scale.y = length;
                     
                     const axis = new THREE.Vector3(0, 1, 0);
                     const quaternion = new THREE.Quaternion().setFromUnitVectors(axis, direction.normalize());
-                    skeleton.bones[connIdx].quaternion.copy(quaternion);
+                    handSkeleton.bones[connIdx].quaternion.copy(quaternion);
                 }
             });
         }
         
-        function createHandSkeleton3D(handKey) {
+        function createHandSkeleton3D() {
             const skeleton = { joints: [], bones: [] };
-            const color = handKey === 'left' ? 0x00ff00 : 0xff00ff;
+            const color = 0x00ff88;
             
             for (let i = 0; i < 21; i++) {
-                const geometry = new THREE.SphereGeometry(0.03, 8, 8);
-                const material = new THREE.MeshBasicMaterial({ color: color });
+                const isFingertip = [4, 8, 12, 16, 20].includes(i);
+                const size = isFingertip ? 0.05 : 0.035;
+                
+                const geometry = new THREE.SphereGeometry(size, 8, 8);
+                const material = new THREE.MeshBasicMaterial({ 
+                    color: color,
+                    transparent: true,
+                    opacity: 0.9
+                });
                 const joint = new THREE.Mesh(geometry, material);
                 joint.visible = false;
                 scene.add(joint);
@@ -468,8 +525,12 @@
             }
             
             HAND_CONNECTIONS.forEach(() => {
-                const geometry = new THREE.CylinderGeometry(0.015, 0.015, 1, 6);
-                const material = new THREE.MeshBasicMaterial({ color: color });
+                const geometry = new THREE.CylinderGeometry(0.018, 0.018, 1, 6);
+                const material = new THREE.MeshBasicMaterial({ 
+                    color: color,
+                    transparent: true,
+                    opacity: 0.8
+                });
                 const bone = new THREE.Mesh(geometry, material);
                 bone.visible = false;
                 scene.add(bone);
@@ -479,7 +540,33 @@
             return skeleton;
         }
         
-        function checkGestures(landmarks, handedness) {
+        function updateHandVelocity(landmarks) {
+            const indexTip = landmarks[8];
+            const pos = getHandPosition3D(indexTip);
+            
+            handPositionHistory.push({ pos: pos.clone(), time: performance.now() });
+            
+            if (handPositionHistory.length > HISTORY_SIZE) {
+                handPositionHistory.shift();
+            }
+        }
+        
+        function getHandVelocity() {
+            if (handPositionHistory.length < 2) return new THREE.Vector3(0, 0, 0);
+            
+            const current = handPositionHistory[handPositionHistory.length - 1];
+            const old = handPositionHistory[0];
+            const timeDiff = (current.time - old.time) / 1000;
+            
+            if (timeDiff < 0.001) return new THREE.Vector3(0, 0, 0);
+            
+            const velocity = new THREE.Vector3().subVectors(current.pos, old.pos);
+            velocity.divideScalar(timeDiff);
+            
+            return velocity;
+        }
+        
+        function checkGestures(landmarks) {
             const thumbTip = landmarks[4];
             const indexTip = landmarks[8];
             
@@ -492,14 +579,14 @@
             const threshold = 0.06;
             const now = Date.now();
             
-            if (distance < threshold && !isPinching[handedness]) {
-                isPinching[handedness] = true;
+            if (distance < threshold && !isPinching) {
+                isPinching = true;
                 
                 const indicator = document.getElementById('gestureIndicator');
                 const x = (1 - thumbTip.x) * overlayCanvas.width;
                 const y = thumbTip.y * overlayCanvas.height;
-                indicator.style.left = (x - 50) + 'px';
-                indicator.style.top = (y - 50) + 'px';
+                indicator.style.left = (x - 60) + 'px';
+                indicator.style.top = (y - 60) + 'px';
                 indicator.classList.add('active');
                 
                 if (now - lastPinchTime > 400) {
@@ -520,8 +607,8 @@
                     tryGrabObject(indexTip);
                 }
                 
-            } else if (distance >= threshold && isPinching[handedness]) {
-                isPinching[handedness] = false;
+            } else if (distance >= threshold && isPinching) {
+                isPinching = false;
                 document.getElementById('gestureIndicator').classList.remove('active');
                 
                 if (grabbedObject) releaseObject();
@@ -529,9 +616,9 @@
         }
         
         function getHandPosition3D(landmark) {
-            const x = (0.5 - landmark.x) * 4;
-            const y = (0.5 - landmark.y) * 4;
-            const z = -landmark.z * 3;
+            const x = (landmark.x - 0.5) * 5;
+            const y = (0.5 - landmark.y) * 5;
+            const z = -landmark.z * 4;
             return new THREE.Vector3(x, y + 2, z);
         }
         
@@ -549,7 +636,7 @@
                 );
                 const dist = handPos.distanceTo(objPos);
                 
-                if (dist < obj.userData.size * 1.5 && dist < closestDist) {
+                if (dist < obj.userData.size * 1.8 && dist < closestDist) {
                     closestDist = dist;
                     closest = obj;
                 }
@@ -560,7 +647,11 @@
                 grabbedObject.userData.grabbed = true;
                 grabbedObject.body.type = CANNON.Body.KINEMATIC;
                 grabbedObject.body.velocity.set(0, 0, 0);
-                grabbedObject.mesh.material.emissive = new THREE.Color(0x444444);
+                grabbedObject.body.angularVelocity.set(0, 0, 0);
+                
+                grabbedObject.mesh.material.emissive.setHex(0x444444);
+                grabbedObject.mesh.material.emissiveIntensity = 0.5;
+                
                 updateStatus(`🎯 Захвачен: ${closest.userData.name}`);
             }
         }
@@ -568,23 +659,41 @@
         function releaseObject() {
             if (!grabbedObject) return;
             
+            const velocity = getHandVelocity();
+            const throwMultiplier = 2.0;
+            
             grabbedObject.body.type = CANNON.Body.DYNAMIC;
-            grabbedObject.mesh.material.emissive = new THREE.Color(0x000000);
+            grabbedObject.body.velocity.set(
+                velocity.x * throwMultiplier,
+                velocity.y * throwMultiplier,
+                velocity.z * throwMultiplier
+            );
+            grabbedObject.body.angularVelocity.set(
+                (Math.random() - 0.5) * 5,
+                (Math.random() - 0.5) * 5,
+                (Math.random() - 0.5) * 5
+            );
+            
+            grabbedObject.mesh.material.emissive.setHex(0x000000);
+            grabbedObject.mesh.material.emissiveIntensity = 0.1;
             grabbedObject.userData.grabbed = false;
             grabbedObject = null;
+            
+            updateStatus('💨 Бросок!');
         }
         
-        function interactWithObjects(landmarks, handedness) {
+        function interactWithObjects(landmarks) {
             if (grabbedObject) {
                 const indexTip = landmarks[8];
                 const handPos = getHandPosition3D(indexTip);
                 
                 grabbedObject.body.position.set(handPos.x, handPos.y, handPos.z);
                 grabbedObject.body.velocity.set(0, 0, 0);
+                grabbedObject.body.angularVelocity.set(0, 0, 0);
                 return;
             }
             
-            if (!isPinching[handedness]) {
+            if (!isPinching) {
                 const indexTip = landmarks[8];
                 const handPos = getHandPosition3D(indexTip);
                 
@@ -598,16 +707,16 @@
                     );
                     const dist = handPos.distanceTo(objPos);
                     
-                    if (dist < obj.userData.size + 0.15) {
+                    if (dist < obj.userData.size + 0.2) {
                         const direction = new THREE.Vector3()
                             .subVectors(objPos, handPos)
                             .normalize();
                         
                         obj.body.applyImpulse(
                             new CANNON.Vec3(
-                                direction.x * 5,
-                                direction.y * 5 + 1,
-                                direction.z * 5
+                                direction.x * 6,
+                                direction.y * 6 + 2,
+                                direction.z * 6
                             ),
                             obj.body.position
                         );
@@ -621,54 +730,57 @@
             
             radialMenu = new THREE.Group();
             radialMenu.position.copy(position);
-            radialMenu.position.z -= 1;
+            radialMenu.position.z -= 1.5;
             
-            const panelGeometry = new THREE.PlaneGeometry(3, 2);
+            const panelGeometry = new THREE.PlaneGeometry(3.5, 2.5);
             const panelMaterial = new THREE.MeshBasicMaterial({ 
                 color: 0x1a1a2e,
                 transparent: true,
-                opacity: 0.9,
+                opacity: 0.95,
                 side: THREE.DoubleSide
             });
             const panel = new THREE.Mesh(panelGeometry, panelMaterial);
             radialMenu.add(panel);
             
             const frameGeometry = new THREE.EdgesGeometry(panelGeometry);
-            const frameMaterial = new THREE.LineBasicMaterial({ color: 0x00d4ff });
+            const frameMaterial = new THREE.LineBasicMaterial({ 
+                color: 0x00ff88,
+                linewidth: 3
+            });
             const frame = new THREE.LineSegments(frameGeometry, frameMaterial);
             radialMenu.add(frame);
             
             const cols = 4;
-            const spacing = 0.65;
+            const spacing = 0.75;
             const startX = -((Math.min(spawnItems.length, cols) - 1) * spacing) / 2;
             
             spawnItems.forEach((item, index) => {
                 const row = Math.floor(index / cols);
                 const col = index % cols;
                 const x = startX + col * spacing;
-                const y = 0.3 - row * spacing;
+                const y = 0.4 - row * spacing;
                 
                 let buttonMesh;
                 if (item.type === 'ball') {
-                    const geometry = new THREE.SphereGeometry(0.2, 16, 16);
-                    const material = new THREE.MeshBasicMaterial({ color: item.color });
+                    const geometry = new THREE.SphereGeometry(0.25, 16, 16);
+                    const material = getMaterial(item.color);
                     buttonMesh = new THREE.Mesh(geometry, material);
                 } else {
-                    const geometry = new THREE.BoxGeometry(0.35, 0.35, 0.35);
-                    const material = new THREE.MeshBasicMaterial({ color: item.color });
+                    const geometry = new THREE.BoxGeometry(0.4, 0.4, 0.4);
+                    const material = getMaterial(item.color);
                     buttonMesh = new THREE.Mesh(geometry, material);
                 }
                 
-                buttonMesh.position.set(x, y, 0.1);
+                buttonMesh.position.set(x, y, 0.15);
                 buttonMesh.userData = { item: item, originalColor: item.color, isSpawnButton: true };
                 radialMenu.add(buttonMesh);
             });
             
-            const closeGeometry = new THREE.SphereGeometry(0.15, 16, 16);
-            const closeMaterial = new THREE.MeshBasicMaterial({ color: 0xe74c3c });
+            const closeGeometry = new THREE.SphereGeometry(0.2, 16, 16);
+            const closeMaterial = new THREE.MeshBasicMaterial({ color: 0xff4444 });
             const closeButton = new THREE.Mesh(closeGeometry, closeMaterial);
-            closeButton.position.set(1.3, 0.85, 0.1);
-            closeButton.userData = { isCloseButton: true, originalColor: 0xe74c3c };
+            closeButton.position.set(1.5, 1.0, 0.15);
+            closeButton.userData = { isCloseButton: true, originalColor: 0xff4444 };
             radialMenu.add(closeButton);
             
             scene.add(radialMenu);
@@ -686,13 +798,14 @@
                 
                 const buttonWorldPos = button.position.clone().add(radialMenu.position);
                 const distance = handPos.distanceTo(buttonWorldPos);
-                const hoverRadius = button.userData.isCloseButton ? 0.25 : 0.3;
+                
+                const hoverRadius = button.userData.isCloseButton ? 0.3 : 0.35;
                 
                 if (distance < hoverRadius) {
                     button.material.color.setHex(0xffff00);
-                    button.scale.set(1.2, 1.2, 1.2);
+                    button.scale.set(1.3, 1.3, 1.3);
                     
-                    if (isPinching.left || isPinching.right) {
+                    if (isPinching) {
                         handleMenuClick(button);
                     }
                 } else {
@@ -707,13 +820,14 @@
                 scene.remove(radialMenu);
                 radialMenu = null;
                 isMenuOpen = false;
-                updateStatus(' Меню закрыто');
+                updateStatus('❌ Меню закрыто');
             } else if (button.userData.isSpawnButton) {
                 spawnItem(button.userData.item);
                 scene.remove(radialMenu);
                 radialMenu = null;
                 isMenuOpen = false;
                 updateStatus(`✅ Создан: ${button.userData.item.name}`);
+                document.getElementById('objectCounter').textContent = `Объекты: ${physicsObjects.length}`;
             }
         }
         
@@ -730,23 +844,24 @@
                 ));
             }
             
-            const material = new THREE.MeshBasicMaterial({ color: itemData.color });
+            const material = getMaterial(itemData.color);
             const mesh = new THREE.Mesh(geometry, material);
             
             const spawnPos = new THREE.Vector3(
-                (Math.random() - 0.5) * 2,
-                2 + Math.random(),
-                2 + Math.random()
+                (Math.random() - 0.5) * 3,
+                2.5 + Math.random(),
+                2.5 + Math.random()
             );
             mesh.position.copy(spawnPos);
             scene.add(mesh);
             
             const body = new CANNON.Body({
-                mass: itemData.type === 'ball' ? 0.5 : 1,
+                mass: itemData.mass,
                 position: new CANNON.Vec3(spawnPos.x, spawnPos.y, spawnPos.z)
             });
             body.addShape(shape);
-            body.linearDamping = 0.2;
+            body.linearDamping = 0.15;
+            body.angularDamping = 0.25;
             world.addBody(body);
             
             physicsObjects.push({
@@ -760,7 +875,7 @@
                 }
             });
             
-            if (physicsObjects.length > 30) {
+            if (physicsObjects.length > 40) {
                 const old = physicsObjects.shift();
                 scene.remove(old.mesh);
                 world.remove(old.body);
@@ -769,6 +884,14 @@
         
         function updateStatus(text) {
             document.getElementById('status').textContent = text;
+        }
+        
+        function onWindowResize() {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            overlayCanvas.width = window.innerWidth;
+            overlayCanvas.height = window.innerHeight;
         }
         
         function animate() {
