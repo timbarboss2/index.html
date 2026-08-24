@@ -1,908 +1,1183 @@
 <!DOCTYPE html>
 <html lang="ru">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-    <title>VR Room Designer PRO - No Mirror</title>
-    <style>
-        * { margin: 0; padding: 0; box-sizing: border-box; }
-        body { 
-            overflow: hidden; 
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background: #000;
-            width: 100vw;
-            height: 100vh;
-        }
-        
-        /* УБРАНО transform: scaleX(-1) - теперь видео не зеркалится */
-        #videoInput {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100vw;
-            height: 100vh;
-            object-fit: cover;
-            z-index: 0;
-        }
-        
-        #gameCanvas { 
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100vw; 
-            height: 100vh; 
-            z-index: 1;
-        }
-        
-        /* УБРАНО transform: scaleX(-1) - скелет рисуется там же, где рука */
-        #handOverlay {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100vw;
-            height: 100vh;
-            z-index: 2;
-            pointer-events: none;
-        }
-        
-        #loading {
-            position: fixed; 
-            top: 0; left: 0; 
-            width: 100%; height: 100%;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            display: flex; 
-            flex-direction: column; 
-            justify-content: center; 
-            align-items: center;
-            z-index: 10000; 
-            color: white;
-        }
-        
-        #loading h1 {
-            margin-bottom: 30px; 
-            font-size: 48px;
-            font-weight: bold;
-            text-shadow: 0 4px 20px rgba(0,0,0,0.3);
-        }
-        
-        .loader {
-            width: 80px; height: 80px;
-            border: 6px solid rgba(255, 255, 255, 0.2);
-            border-top-color: #fff;
-            border-radius: 50%;
-            animation: spin 0.8s linear infinite;
-        }
-        
-        @keyframes spin { to { transform: rotate(360deg); } }
-        
-        #startButton {
-            position: fixed;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white;
-            border: none;
-            padding: 25px 60px;
-            border-radius: 50px;
-            font-size: 28px;
-            font-weight: bold;
-            cursor: pointer;
-            z-index: 10001;
-            box-shadow: 0 15px 50px rgba(102, 126, 234, 0.6);
-            transition: all 0.3s ease;
-        }
-        
-        #startButton:hover {
-            transform: translate(-50%, -50%) scale(1.05);
-        }
-        
-        #status {
-            position: fixed;
-            top: 20px;
-            left: 20px;
-            background: rgba(0, 0, 0, 0.7);
-            backdrop-filter: blur(20px);
-            color: #00ff88;
-            padding: 15px 25px;
-            border-radius: 15px;
-            font-size: 14px;
-            z-index: 1000;
-            font-weight: 600;
-            border: 2px solid rgba(0, 255, 136, 0.3);
-        }
-        
-        #instructions {
-            position: fixed;
-            bottom: 30px;
-            left: 50%;
-            transform: translateX(-50%);
-            background: rgba(0, 0, 0, 0.8);
-            backdrop-filter: blur(20px);
-            color: white;
-            padding: 20px 40px;
-            border-radius: 20px;
-            font-size: 16px;
-            text-align: center;
-            z-index: 100;
-            border: 2px solid rgba(255, 255, 255, 0.2);
-            max-width: 90%;
-        }
-        
-        /* УБРАНО transform: scaleX(-1) у индикатора */
-        #gestureIndicator {
-            position: fixed; 
-            width: 120px; height: 120px;
-            border: 6px solid rgba(0, 255, 136, 0.9);
-            border-radius: 50%; 
-            pointer-events: none;
-            opacity: 0; 
-            transition: opacity 0.2s, transform 0.2s;
-            z-index: 100;
-            box-shadow: 0 0 50px rgba(0, 255, 136, 0.8);
-        }
-        
-        #gestureIndicator.active {
-            opacity: 1;
-            transform: scale(1.2);
-            animation: pulse 0.5s ease-in-out infinite;
-        }
-        
-        @keyframes pulse {
-            0%, 100% { box-shadow: 0 0 50px rgba(0, 255, 136, 0.8); }
-            50% { box-shadow: 0 0 80px rgba(0, 255, 136, 1); }
-        }
-        
-        #objectCounter {
-            position: fixed;
-            top: 20px;
-            right: 20px;
-            background: rgba(0, 0, 0, 0.7);
-            backdrop-filter: blur(20px);
-            color: #ffaa00;
-            padding: 15px 25px;
-            border-radius: 15px;
-            font-size: 16px;
-            font-weight: bold;
-            z-index: 1000;
-            border: 2px solid rgba(255, 170, 0, 0.3);
-        }
-    </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>ULTIMATE VR Hand Tracking</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; user-select: none; -webkit-tap-highlight-color: transparent; }
+  html, body { width: 100vw; height: 100vh; overflow: hidden; background: #000; font-family: 'Arial', sans-serif; color: #fff; touch-action: none; }
+  
+  #video { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; object-fit: cover; z-index: 0; }
+  #canvas { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; z-index: 2; }
+  #divider { position: fixed; top: 0; left: 50%; width: 4px; height: 100vh; background: #000; z-index: 3; pointer-events: none; }
+  
+  #ui {
+    position: fixed; top: 10px; left: 50%; transform: translateX(-50%);
+    z-index: 4; background: rgba(0,0,0,0.9); padding: 10px 20px;
+    border-radius: 25px; font-size: 14px; pointer-events: none;
+    text-align: center; border: 2px solid rgba(0,210,255,0.6);
+    box-shadow: 0 0 30px rgba(0,210,255,0.4);
+    display: none;
+  }
+  
+  #stats {
+    position: fixed; bottom: 10px; left: 10px; z-index: 4;
+    background: rgba(0,0,0,0.8); padding: 8px 12px;
+    border-radius: 10px; font-size: 11px; font-family: monospace;
+    display: none;
+  }
+  
+  #achievements {
+    position: fixed; top: 60px; right: 10px; z-index: 5;
+    display: flex; flex-direction: column; gap: 10px;
+    pointer-events: none;
+  }
+  .achievement {
+    background: linear-gradient(135deg, #ffd700, #ffed4e);
+    color: #000; padding: 12px 20px; border-radius: 15px;
+    font-weight: bold; box-shadow: 0 0 20px rgba(255,215,0,0.6);
+    animation: achieveIn 0.5s ease-out, achieveOut 0.5s ease-in 3s forwards;
+  }
+  @keyframes achieveIn { from { transform: translateX(400px); opacity: 0; } }
+  @keyframes achieveOut { to { transform: translateX(400px); opacity: 0; } }
+  
+  #startScreen {
+    position: fixed; inset: 0;
+    background: linear-gradient(135deg, #0f0c29, #302b63, #24243e);
+    z-index: 20; display: flex; align-items: center; justify-content: center;
+    flex-direction: column; padding: 20px; text-align: center;
+    overflow-y: auto;
+  }
+  #startScreen h1 {
+    font-size: 36px; margin-bottom: 15px;
+    background: linear-gradient(90deg, #00d2ff, #3a7bd5, #ff00ea);
+    -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+    animation: glow 2s ease-in-out infinite;
+  }
+  @keyframes glow {
+    0%, 100% { filter: brightness(1); }
+    50% { filter: brightness(1.3); }
+  }
+  .subtitle { font-size: 16px; color: #aaa; margin-bottom: 20px; max-width: 600px; line-height: 1.5; }
+  
+  .features {
+    display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+    gap: 15px; margin-bottom: 25px; max-width: 600px;
+  }
+  .feature {
+    background: rgba(255,255,255,0.08); border: 2px solid rgba(255,255,255,0.15);
+    padding: 15px; border-radius: 12px; text-align: center;
+    transition: transform 0.3s, border-color 0.3s;
+  }
+  .feature:hover { transform: translateY(-5px); border-color: #00d2ff; }
+  .feature .icon { font-size: 32px; margin-bottom: 8px; }
+  .feature .label { font-size: 13px; }
+  
+  #startBtn {
+    background: linear-gradient(90deg, #00d2ff, #3a7bd5, #ff00ea);
+    color: #fff; border: none; padding: 22px 60px;
+    font-size: 22px; font-weight: bold; border-radius: 50px;
+    cursor: pointer; box-shadow: 0 0 40px rgba(0,210,255,0.6);
+    transition: transform 0.2s, box-shadow 0.2s;
+    margin-bottom: 15px;
+  }
+  #startBtn:hover { transform: scale(1.05); box-shadow: 0 0 60px rgba(0,210,255,0.8); }
+  #startBtn:disabled { background: #555; cursor: not-allowed; box-shadow: none; }
+  
+  #errorMsg { color: #ff6b6b; margin-top: 15px; font-size: 14px; display: none; }
+  
+  #loading {
+    position: fixed; inset: 0; background: #000; z-index: 15;
+    display: none; align-items: center; justify-content: center;
+    flex-direction: column; font-size: 18px;
+  }
+  .spinner {
+    width: 70px; height: 70px;
+    border: 5px solid #333; border-top-color: #00d2ff;
+    border-radius: 50%; animation: spin 1s linear infinite;
+    margin-bottom: 20px;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  #loadingProgress {
+    width: 300px; height: 8px; background: #333;
+    border-radius: 4px; overflow: hidden; margin-top: 15px;
+  }
+  #loadingBar {
+    height: 100%; background: linear-gradient(90deg, #00d2ff, #ff00ea);
+    width: 0%; transition: width 0.3s;
+  }
+  
+  #rotateWarning {
+    position: fixed; inset: 0;
+    background: linear-gradient(135deg, #0f0c29, #302b63);
+    z-index: 50; display: none;
+    align-items: center; justify-content: center;
+    flex-direction: column; text-align: center; padding: 20px;
+  }
+  #rotateWarning .icon {
+    font-size: 80px; margin-bottom: 20px;
+    animation: rotatePhone 2s ease-in-out infinite;
+  }
+  @keyframes rotatePhone {
+    0%, 100% { transform: rotate(0deg); }
+    50% { transform: rotate(90deg); }
+  }
+</style>
 </head>
 <body>
-    <div id="loading">
-        <h1>🎮 VR Room Designer PRO</h1>
-        <div class="loader"></div>
-        <p style="margin-top: 30px; font-size: 20px; font-weight: 600;">Загрузка...</p>
-    </div>
-    
-    <button id="startButton">🚀 НАЧАТЬ ИГРУ</button>
-    
-    <video id="videoInput" autoplay playsinline muted></video>
-    <canvas id="gameCanvas"></canvas>
-    <canvas id="handOverlay"></canvas>
-    
-    <div id="gestureIndicator"></div>
-    <div id="objectCounter">Объекты: 0</div>
-    <div id="status">Готово к запуску</div>
-    <div id="instructions">
-        ✋ Покажи руку | 🤏 Щипок = взять/бросить | 🎯 Двойной щипок = меню
-    </div>
-    
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/cannon@0.6.2/build/cannon.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/hands@0.4.1646424915/hands.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils@0.3.1640029074/camera_utils.min.js"></script>
-    
-    <script>
-        let scene, camera, renderer, world;
-        let physicsObjects = [];
-        let handSkeleton = null;
-        let hands, videoElement, overlayCanvas, overlayCtx;
-        let isPinching = false;
-        let grabbedObject = null;
-        let pinchCount = 0;
-        let lastPinchTime = 0;
-        let radialMenu = null;
-        let isMenuOpen = false;
-        let gameStarted = false;
-        let lastLandmarks = null;
-        
-        let handPositionHistory = [];
-        const HISTORY_SIZE = 5;
-        
-        const HAND_CONNECTIONS = [
-            [0, 1], [1, 2], [2, 3], [3, 4],
-            [0, 5], [5, 6], [6, 7], [7, 8],
-            [0, 9], [9, 10], [10, 11], [11, 12],
-            [0, 13], [13, 14], [14, 15], [15, 16],
-            [0, 17], [17, 18], [18, 19], [19, 20]
-        ];
-        
-        const spawnItems = [
-            { name: '🧊 Красный куб', type: 'cube', color: 0xff4444, size: 0.3, mass: 1 },
-            { name: '🧊 Синий куб', type: 'cube', color: 0x4488ff, size: 0.3, mass: 1 },
-            { name: '🧊 Зелёный куб', type: 'cube', color: 0x44ff88, size: 0.3, mass: 1 },
-            { name: '🧊 Жёлтый куб', type: 'cube', color: 0xffff44, size: 0.3, mass: 1 },
-            { name: '⚽ Футбол', type: 'ball', color: 0x222222, size: 0.25, mass: 0.5 },
-            { name: '🎾 Теннис', type: 'ball', color: 0xccff00, size: 0.15, mass: 0.3 },
-            { name: '🏀 Баскет', type: 'ball', color: 0xff6600, size: 0.3, mass: 0.6 },
-            { name: '🎱 Бильярд', type: 'ball', color: 0x111111, size: 0.12, mass: 0.4 }
-        ];
-        
-        const materials = {};
-        function getMaterial(color) {
-            if (!materials[color]) {
-                materials[color] = new THREE.MeshLambertMaterial({ 
-                    color: color,
-                    emissive: color,
-                    emissiveIntensity: 0.1
-                });
-            }
-            return materials[color];
-        }
-        
-        document.getElementById('startButton').addEventListener('click', async () => {
-            document.getElementById('startButton').style.display = 'none';
-            await startGame();
+
+<div id="rotateWarning">
+  <div class="icon">📱</div>
+  <h2>Поверни телефон горизонтально</h2>
+</div>
+
+<div id="startScreen">
+  <h1>🚀 ULTIMATE VR</h1>
+  <p class="subtitle">WebGL • Частицы • Процедурные миры • 3D звук • Достижения • Музыкальный режим</p>
+  
+  <div class="features">
+    <div class="feature"><div class="icon">🎨</div><div class="label">WebGL графика</div></div>
+    <div class="feature"><div class="icon">✨</div><div class="label">Частицы</div></div>
+    <div class="feature"><div class="icon">🌍</div><div class="label">5 миров</div></div>
+    <div class="feature"><div class="icon">🎵</div><div class="label">Музыка</div></div>
+    <div class="feature"><div class="icon">🏆</div><div class="label">Достижения</div></div>
+    <div class="feature"><div class="icon">🖐</div><div class="label">10+ жестов</div></div>
+    <div class="feature"><div class="icon">📱</div><div class="label">15 приложений</div></div>
+    <div class="feature"><div class="icon">⚡</div><div class="label">60 FPS</div></div>
+  </div>
+  
+  <button id="startBtn">▶ НАЧАТЬ ПРИКЛЮЧЕНИЕ</button>
+  <div id="errorMsg"></div>
+</div>
+
+<div id="loading">
+  <div class="spinner"></div>
+  <div id="loadingText">Инициализация...</div>
+  <div id="loadingProgress"><div id="loadingBar"></div></div>
+</div>
+
+<video id="video" autoplay playsinline muted></video>
+<canvas id="canvas"></canvas>
+<div id="divider"></div>
+<div id="ui">Двойной щипок для меню</div>
+<div id="stats"></div>
+<div id="achievements"></div>
+
+<script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@mediapipe/hands/hands.js"></script>
+
+<script>
+// ==================== КОНФИГУРАЦИЯ ====================
+const CONFIG = {
+  enableParticles: true,
+  enableMusic: true,
+  enableAchievements: true,
+  enableStats: true,
+  currentWorld: 'space',
+  worlds: ['space', 'forest', 'city', 'ocean', 'cyberpunk']
+};
+
+// ==================== ЭЛЕМЕНТЫ ====================
+const video = document.getElementById('video');
+const canvas = document.getElementById('canvas');
+const ctx = canvas.getContext('2d');
+const ui = document.getElementById('ui');
+const stats = document.getElementById('stats');
+const startScreen = document.getElementById('startScreen');
+const startBtn = document.getElementById('startBtn');
+const loading = document.getElementById('loading');
+const loadingText = document.getElementById('loadingText');
+const loadingBar = document.getElementById('loadingBar');
+const errorMsg = document.getElementById('errorMsg');
+const rotateWarning = document.getElementById('rotateWarning');
+const achievementsDiv = document.getElementById('achievements');
+
+let W = 0, H = 0;
+let FPS = 0, frameCount = 0, lastFPSTime = 0;
+
+function checkOrientation() {
+  rotateWarning.style.display = (window.innerWidth > window.innerHeight) ? 'none' : 'flex';
+}
+function resize() {
+  W = canvas.width = window.innerWidth;
+  H = canvas.height = window.innerHeight;
+  checkOrientation();
+}
+window.addEventListener('resize', resize);
+window.addEventListener('orientationchange', () => setTimeout(checkOrientation, 300));
+resize();
+
+// ==================== 3D МАТЕМАТИКА ====================
+class Vec3 {
+  constructor(x=0,y=0,z=0){this.x=x;this.y=y;this.z=z;}
+  add(v){return new Vec3(this.x+v.x,this.y+v.y,this.z+v.z);}
+  sub(v){return new Vec3(this.x-v.x,this.y-v.y,this.z-v.z);}
+  mul(s){return new Vec3(this.x*s,this.y*s,this.z*s);}
+  len(){return Math.hypot(this.x,this.y,this.z);}
+  clone(){return new Vec3(this.x,this.y,this.z);}
+  lerp(v,t){return new Vec3(this.x+(v.x-this.x)*t,this.y+(v.y-this.y)*t,this.z+(v.z-this.z)*t);}
+  distTo(v){return this.sub(v).len();}
+  normalize(){const l=this.len();return l>0?this.mul(1/l):new Vec3();}
+  cross(v){return new Vec3(this.y*v.z-this.z*v.y,this.z*v.x-this.x*v.z,this.x*v.y-this.y*v.x);}
+  dot(v){return this.x*v.x+this.y*v.y+this.z*v.z;}
+}
+
+class OneEuroFilter {
+  constructor(freq=30, mincutoff=1, beta=0.007, dcutoff=1) {
+    this.freq=freq;this.mincutoff=mincutoff;this.beta=beta;this.dcutoff=dcutoff;
+    this.x=null;this.dx=0;this.lastTime=null;
+  }
+  alpha(cutoff){const te=1.0/this.freq;const tau=1.0/(2*Math.PI*cutoff);return 1.0/(1.0+tau/te);}
+  filter(x,timestamp){
+    if(this.x===null){this.x=x;this.lastTime=timestamp;return x;}
+    const te=timestamp?(timestamp-this.lastTime):(1.0/this.freq);
+    this.freq=1.0/Math.max(te,0.001);
+    const dx=(x-this.x)/te;
+    const edx=this.alpha(this.dcutoff);
+    this.dx=edx*dx+(1-edx)*this.dx;
+    const cutoff=this.mincutoff+this.beta*Math.abs(this.dx);
+    const ax=this.alpha(cutoff);
+    this.x=ax*x+(1-ax)*this.x;
+    this.lastTime=timestamp;
+    return this.x;
+  }
+}
+
+const CAM_Y = 1.6;
+const EYE_OFFSET = 0.032;
+const FOV_SCALE = 1.2;
+
+function project(p, eyeSign, halfW, offX) {
+  const dx = p.x - eyeSign * EYE_OFFSET;
+  const dy = p.y - CAM_Y;
+  const dz = p.z;
+  if (dz < 0.1) return { visible: false };
+  const scale = 1 / (dz * FOV_SCALE);
+  return {
+    x: offX + halfW/2 + dx * scale * halfW,
+    y: H/2 - dy * scale * H,
+    scale, visible: true, depth: dz
+  };
+}
+
+// ==================== КАМЕРА ====================
+async function requestCamera() {
+  loadingText.textContent = 'Запрос камеры...';
+  loadingBar.style.width = '20%';
+  try {
+    const stream = await navigator.mediaDevices.getUserMedia({
+      video: { facingMode: { ideal: 'environment' }, width: { ideal: 1280 }, height: { ideal: 720 } },
+      audio: true // Для 3D звука
+    });
+    video.srcObject = stream;
+    await new Promise((resolve, reject) => {
+      video.onloadedmetadata = resolve;
+      video.onerror = reject;
+      setTimeout(reject, 5000);
+    });
+    await video.play();
+    loadingBar.style.width = '40%';
+    return true;
+  } catch (e) {
+    errorMsg.style.display = 'block';
+    errorMsg.textContent = '❌ ' + e.message;
+    startBtn.disabled = false;
+    return false;
+  }
+}
+
+// ==================== ТРЕКИНГ ====================
+let handsTracker = null;
+let hands2D = [], hands3D = [];
+let filters2D = [], filters3D = [];
+
+function landmarksToScreen(landmarks) {
+  const vw = video.videoWidth || 1280;
+  const vh = video.videoHeight || 720;
+  const screenAspect = W / H;
+  const videoAspect = vw / vh;
+  let scale, offsetX, offsetY;
+  if (videoAspect > screenAspect) {
+    scale = W / vw; offsetX = 0; offsetY = (H - vh * scale) / 2;
+  } else {
+    scale = H / vh; offsetX = (W - vw * scale) / 2; offsetY = 0;
+  }
+  return landmarks.map(p => ({ x: p.x * vw * scale + offsetX, y: p.y * vh * scale + offsetY }));
+}
+
+function landmarksToWorld(landmarks, handIndex, timestamp) {
+  const wrist = landmarks[0];
+  const middleBase = landmarks[9];
+  const pixelSize = Math.hypot(wrist.x - middleBase.x, wrist.y - middleBase.y);
+  let depth = Math.min(Math.max(0.18 / (pixelSize + 0.001), 0.3), 2.0);
+  const aspect = (video.videoWidth || 1280) / (video.videoHeight || 720);
+  
+  if (!filters3D[handIndex]) {
+    filters3D[handIndex] = [];
+    for (let i = 0; i < 21; i++) {
+      filters3D[handIndex].push({
+        x: new OneEuroFilter(30, 1.0, 0.007),
+        y: new OneEuroFilter(30, 1.0, 0.007),
+        z: new OneEuroFilter(30, 1.0, 0.007)
+      });
+    }
+  }
+  
+  return landmarks.map((p, i) => {
+    const rawX = (p.x - 0.5) * depth * aspect * 1.5;
+    const rawY = CAM_Y - (p.y - 0.5) * depth * 1.5;
+    const rawZ = depth - p.z * 0.2;
+    return new Vec3(
+      filters3D[handIndex][i].x.filter(rawX, timestamp),
+      filters3D[handIndex][i].y.filter(rawY, timestamp),
+      filters3D[handIndex][i].z.filter(rawZ, timestamp)
+    );
+  });
+}
+
+async function initHandTracking() {
+  loadingText.textContent = 'Загрузка нейросети...';
+  loadingBar.style.width = '60%';
+  
+  handsTracker = new Hands({
+    locateFile: (file) => `https://cdn.jsdelivr.net/npm/@mediapipe/hands/${file}`
+  });
+  
+  handsTracker.setOptions({
+    maxNumHands: 2, modelComplexity: 1,
+    minDetectionConfidence: 0.7, minTrackingConfidence: 0.6
+  });
+  
+  handsTracker.onResults(onResults);
+  
+  loadingText.textContent = 'Запуск трекинга...';
+  loadingBar.style.width = '80%';
+  
+  const camera = new Camera(video, {
+    onFrame: async () => {
+      if (handsTracker) {
+        try { await handsTracker.send({ image: video }); }
+        catch(e) { console.error(e); }
+      }
+    },
+    width: 1280, height: 720
+  });
+  camera.start();
+  
+  loadingBar.style.width = '100%';
+}
+
+function onResults(results) {
+  const timestamp = performance.now();
+  hands2D = []; hands3D = [];
+  
+  if (results.multiHandLandmarks) {
+    for (let i = 0; i < results.multiHandLandmarks.length; i++) {
+      const lm = results.multiHandLandmarks[i];
+      hands2D.push(landmarksToScreen(lm));
+      hands3D.push(landmarksToWorld(lm, i, timestamp));
+    }
+  }
+}
+
+// ==================== ЖЕСТЫ ====================
+function dist2D(a, b) { return Math.hypot(a.x - b.x, a.y - b.y); }
+function dist3(a, b) { return a.distTo(b); }
+
+function isPinch3D(hand) {
+  return dist3(hand[4], hand[8]) < dist3(hand[0], hand[9]) * 0.4;
+}
+
+function isPinch2D(hand) {
+  return dist2D(hand[4], hand[8]) < dist2D(hand[0], hand[9]) * 0.4;
+}
+
+// Новые жесты
+function isOpenPalm(hand) {
+  const wrist = hand[0];
+  const tips = [8, 12, 16, 20];
+  const pips = [6, 10, 14, 18];
+  let ext = 0;
+  for (let i = 0; i < 4; i++) {
+    if (dist3(wrist, hand[tips[i]]) > dist3(wrist, hand[pips[i]]) * 1.1) ext++;
+  }
+  return ext >= 3;
+}
+
+function isThumbsUp(hand) {
+  const thumb = hand[4];
+  const index = hand[8];
+  return thumb.y > hand[0].y && dist3(thumb, index) > dist3(hand[0], hand[9]) * 0.8;
+}
+
+function isPeaceSign(hand) {
+  const index = hand[8];
+  const middle = hand[12];
+  const ring = hand[16];
+  return dist3(index, middle) > dist3(hand[0], hand[9]) * 0.3 &&
+         dist3(middle, ring) < dist3(hand[0], hand[9]) * 0.3;
+}
+
+let lastTapTime = [0, 0];
+function checkDoubleTap(handIndex, now) {
+  const t = now - lastTapTime[handIndex];
+  if (t < 500 && t > 80) { lastTapTime[handIndex] = 0; return true; }
+  lastTapTime[handIndex] = now;
+  return false;
+}
+
+let prevHandX = [null, null];
+let swipeAccum = [0, 0];
+function detectSwipe(handIndex, hand) {
+  const x = hand[0].x;
+  if (prevHandX[handIndex] !== null) {
+    const dx = x - prevHandX[handIndex];
+    swipeAccum[handIndex] += dx;
+    if (Math.abs(swipeAccum[handIndex]) > 0.3) {
+      const dir = swipeAccum[handIndex] > 0 ? 'right' : 'left';
+      swipeAccum[handIndex] = 0;
+      prevHandX[handIndex] = x;
+      return dir;
+    }
+  }
+  prevHandX[handIndex] = x;
+  return null;
+}
+
+// ==================== СИСТЕМА ЧАСТИЦ ====================
+class Particle {
+  constructor(pos, vel, color, life=1, size=5) {
+    this.pos = pos.clone();
+    this.vel = vel.clone();
+    this.color = color;
+    this.life = life;
+    this.maxLife = life;
+    this.size = size;
+  }
+  update(dt) {
+    this.pos = this.pos.add(this.vel.mul(dt));
+    this.vel.y -= 2 * dt; // гравитация
+    this.life -= dt;
+  }
+  draw(eyeSign, halfW, offX) {
+    const p = project(this.pos, eyeSign, halfW, offX);
+    if (!p.visible || this.life <= 0) return;
+    const alpha = this.life / this.maxLife;
+    const size = this.size * p.scale * halfW * 0.01;
+    ctx.fillStyle = this.color.replace('1)', `${alpha})`);
+    ctx.beginPath();
+    ctx.arc(p.x, p.y, size, 0, Math.PI*2);
+    ctx.fill();
+  }
+}
+
+let particles = [];
+
+function emitParticles(pos, count, color, spread=1) {
+  if (!CONFIG.enableParticles) return;
+  for (let i = 0; i < count; i++) {
+    const vel = new Vec3(
+      (Math.random() - 0.5) * spread,
+      Math.random() * spread,
+      (Math.random() - 0.5) * spread
+    );
+    particles.push(new Particle(pos, vel, color, 1 + Math.random(), 3 + Math.random() * 5));
+  }
+}
+
+// ==================== ПРОЦЕДУРНЫЕ МИРЫ ====================
+class World {
+  constructor(name) {
+    this.name = name;
+    this.objects = [];
+    this.generate();
+  }
+  generate() {
+    if (this.name === 'space') {
+      // Космос: звёзды, планеты
+      for (let i = 0; i < 100; i++) {
+        this.objects.push({
+          type: 'star',
+          pos: new Vec3((Math.random()-0.5)*10, Math.random()*5, Math.random()*10),
+          size: 0.02 + Math.random() * 0.05,
+          color: `rgba(255,255,255,${0.5+Math.random()*0.5})`
         });
-        
-        async function startGame() {
-            try {
-                initThreeJS();
-                initPhysics();
-                await initCamera();
-                document.getElementById('loading').style.display = 'none';
-                gameStarted = true;
-                updateStatus('✅ Камера активна!');
-                animate();
-            } catch (error) {
-                console.error('Ошибка:', error);
-                alert('Ошибка: ' + error.message);
+      }
+    } else if (this.name === 'forest') {
+      // Лес: деревья
+      for (let i = 0; i < 20; i++) {
+        this.objects.push({
+          type: 'tree',
+          pos: new Vec3((Math.random()-0.5)*8, 0, 2 + Math.random()*6),
+          height: 1 + Math.random() * 2
+        });
+      }
+    } else if (this.name === 'city') {
+      // Город: здания
+      for (let i = 0; i < 15; i++) {
+        this.objects.push({
+          type: 'building',
+          pos: new Vec3((Math.random()-0.5)*10, 0, 3 + Math.random()*5),
+          width: 0.5 + Math.random(),
+          height: 1 + Math.random() * 3
+        });
+      }
+    }
+  }
+  draw(eyeSign, halfW, offX) {
+    this.objects.forEach(obj => {
+      if (obj.type === 'star') {
+        const p = project(obj.pos, eyeSign, halfW, offX);
+        if (p.visible) {
+          ctx.fillStyle = obj.color;
+          ctx.beginPath();
+          ctx.arc(p.x, p.y, obj.size * p.scale * halfW, 0, Math.PI*2);
+          ctx.fill();
+        }
+      } else if (obj.type === 'tree') {
+        const base = project(obj.pos, eyeSign, halfW, offX);
+        const top = project(obj.pos.add(new Vec3(0, obj.height, 0)), eyeSign, halfW, offX);
+        if (base.visible && top.visible) {
+          ctx.strokeStyle = '#4a2511';
+          ctx.lineWidth = 10 * base.scale;
+          ctx.beginPath();
+          ctx.moveTo(base.x, base.y);
+          ctx.lineTo(top.x, top.y);
+          ctx.stroke();
+          
+          ctx.fillStyle = '#2d5016';
+          ctx.beginPath();
+          ctx.arc(top.x, top.y, 30 * base.scale, 0, Math.PI*2);
+          ctx.fill();
+        }
+      } else if (obj.type === 'building') {
+        const base = project(obj.pos, eyeSign, halfW, offX);
+        const top = project(obj.pos.add(new Vec3(0, obj.height, 0)), eyeSign, halfW, offX);
+        if (base.visible && top.visible) {
+          const w = obj.width * base.scale * halfW;
+          ctx.fillStyle = '#3a3a3a';
+          ctx.fillRect(base.x - w/2, top.y, w, base.y - top.y);
+          ctx.strokeStyle = '#555';
+          ctx.strokeRect(base.x - w/2, top.y, w, base.y - top.y);
+        }
+      }
+    });
+  }
+}
+
+let currentWorld = new World(CONFIG.currentWorld);
+
+// ==================== МУЗЫКАЛЬНАЯ СИСТЕМА ====================
+let audioCtx = null;
+let musicEnabled = true;
+
+function initAudio() {
+  if (!audioCtx) {
+    audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+  }
+}
+
+function playNote(freq, duration=0.3, type='sine') {
+  if (!musicEnabled || !audioCtx) return;
+  const osc = audioCtx.createOscillator();
+  const gain = audioCtx.createGain();
+  osc.type = type;
+  osc.frequency.value = freq;
+  gain.gain.setValueAtTime(0.2, audioCtx.currentTime);
+  gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + duration);
+  osc.connect(gain).connect(audioCtx.destination);
+  osc.start();
+  osc.stop(audioCtx.currentTime + duration);
+}
+
+function playHandSound(hand) {
+  if (!musicEnabled) return;
+  // Высота звука зависит от высоты руки
+  const pitch = 200 + (CAM_Y - hand[0].y) * 300;
+  playNote(pitch, 0.2, 'sine');
+}
+
+// ==================== СИСТЕМА ДОСТИЖЕНИЙ ====================
+let achievements = JSON.parse(localStorage.getItem('vr_achievements') || '[]');
+
+function unlockAchievement(id, title, desc) {
+  if (!CONFIG.enableAchievements) return;
+  if (achievements.includes(id)) return;
+  
+  achievements.push(id);
+  localStorage.setItem('vr_achievements', JSON.stringify(achievements));
+  
+  const el = document.createElement('div');
+  el.className = 'achievement';
+  el.innerHTML = `🏆 ${title}<br><small>${desc}</small>`;
+  achievementsDiv.appendChild(el);
+  
+  setTimeout(() => el.remove(), 3500);
+}
+
+// ==================== МИР И ФИЗИКА ====================
+let floorY = 0.0;
+let objects = [];
+
+class PhysObject {
+  constructor(pos, shape, color, size=0.08) {
+    this.pos = pos.clone(); this.vel = new Vec3(); this.shape = shape;
+    this.color = color; this.size = size;
+    this.held = false; this.heldByHand = -1; this.holdOffset = new Vec3();
+    this.history = []; this.rotation = Math.random() * 6;
+    this.glow = 0;
+  }
+  update(dt, now) {
+    if (this.held) {
+      const hand = hands3D[this.heldByHand];
+      if (hand && isPinch3D(hand)) {
+        const target = hand[8].add(this.holdOffset);
+        this.pos = target;
+        this.history.push({ pos: target.clone(), time: now });
+        if (this.history.length > 4) this.history.shift();
+        this.glow = Math.min(this.glow + dt * 2, 1);
+      } else this.release();
+    } else {
+      this.vel.y -= 15 * dt;
+      this.pos = this.pos.add(this.vel.mul(dt));
+      if (this.pos.y < floorY + this.size) {
+        this.pos.y = floorY + this.size;
+        this.vel.y *= -0.5; this.vel.x *= 0.9; this.vel.z *= 0.9;
+        emitParticles(this.pos, 5, 'rgba(255,255,255,1)', 0.5);
+      }
+      if (Math.abs(this.pos.x) > 2.5) { this.pos.x = Math.sign(this.pos.x)*2.5; this.vel.x *= -0.5; }
+      if (this.pos.z < 0.2) { this.pos.z = 0.2; this.vel.z *= -0.5; }
+      if (this.pos.z > 4) { this.pos.z = 4; this.vel.z *= -0.5; }
+      this.glow = Math.max(this.glow - dt, 0);
+    }
+    this.rotation += this.vel.x * dt;
+  }
+  release() {
+    if (this.history.length >= 2) {
+      const last = this.history[this.history.length-1];
+      const first = this.history[0];
+      const dt = (last.time - first.time) / 1000;
+      if (dt > 0) this.vel = last.pos.sub(first.pos).mul(1/dt);
+    }
+    this.held = false; this.heldByHand = -1; this.history = [];
+  }
+}
+
+// ==================== ПРИЛОЖЕНИЯ ====================
+const APPS = {
+  games: [
+    { id: 'cube', icon: '▣', color: '#ff4757', label: 'КУБ', type: 'object' },
+    { id: 'sphere', icon: '●', color: '#2ed573', label: 'ШАР', type: 'object' },
+    { id: 'cylinder', icon: '▮', color: '#ffa502', label: 'ЦИЛИНДР', type: 'object' },
+    { id: 'pyramid', icon: '▲', color: '#a4b0be', label: 'ПИРАМИДА', type: 'object' },
+    { id: 'vk', icon: '▶', color: '#0077FF', label: 'VK VIDEO', type: 'vk' },
+  ],
+  utils: [
+    { id: 'weather', icon: '☀', color: '#3498db', label: 'ПОГОДА', type: 'app' },
+    { id: 'news', icon: '📰', color: '#e67e22', label: 'НОВОСТИ', type: 'app' },
+    { id: 'recipes', icon: '🍳', color: '#e74c3c', label: 'РЕЦЕПТЫ', type: 'app' },
+    { id: 'shopping', icon: '🛒', color: '#27ae60', label: 'ПОКУПКИ', type: 'app' },
+    { id: 'vpn', icon: '🔒', color: '#8e44ad', label: 'VPN', type: 'app' },
+  ],
+  finance: [
+    { id: 'crypto', icon: '₿', color: '#f39c12', label: 'КРИПТА', type: 'app' },
+    { id: 'stocks', icon: '📈', color: '#16a085', label: 'АКЦИИ', type: 'app' },
+    { id: 'budget', icon: '💰', color: '#2ecc71', label: 'БЮДЖЕТ', type: 'app' },
+    { id: 'passwords', icon: '🔑', color: '#34495e', label: 'ПАРОЛИ', type: 'app' },
+    { id: 'sports', icon: '⚽', color: '#d35400', label: 'СПОРТ', type: 'app' },
+  ]
+};
+
+const CATEGORIES = [
+  { id: 'games', label: '🎮 ИГРЫ', color: '#ff4757' },
+  { id: 'utils', label: '🔧 УТИЛИТЫ', color: '#3498db' },
+  { id: 'finance', label: '💵 ФИНАНСЫ', color: '#2ecc71' }
+];
+
+let menuVisible = false;
+let currentCategory = 0;
+let activeApp = null;
+let appData = {};
+
+async function loadWeather() {
+  try {
+    const res = await fetch('https://api.open-meteo.com/v1/forecast?latitude=55.75&longitude=37.62&current_weather=true');
+    const data = await res.json();
+    appData.weather = { temp: data.current_weather.temperature, wind: data.current_weather.windspeed, code: data.current_weather.weathercode };
+  } catch (e) {
+    appData.weather = { temp: 18, wind: 5, code: 1, error: true };
+  }
+}
+
+async function loadCrypto() {
+  try {
+    const res = await fetch('https://api.coingecko.com/api/v3/simple/price?ids=bitcoin,ethereum,tether,solana&vs_currencies=usd&include_24hr_change=true');
+    const data = await res.json();
+    appData.crypto = [
+      { name: 'Bitcoin', symbol: 'BTC', price: data.bitcoin.usd, change: data.bitcoin.usd_24h_change },
+      { name: 'Ethereum', symbol: 'ETH', price: data.ethereum.usd, change: data.ethereum.usd_24h_change },
+      { name: 'Tether', symbol: 'USDT', price: data.tether.usd, change: data.tether.usd_24h_change },
+      { name: 'Solana', symbol: 'SOL', price: data.solana.usd, change: data.solana.usd_24h_change },
+    ];
+  } catch (e) {
+    appData.crypto = [
+      { name: 'Bitcoin', symbol: 'BTC', price: 65432, change: 2.3 },
+      { name: 'Ethereum', symbol: 'ETH', price: 3456, change: -1.2 },
+      { name: 'Tether', symbol: 'USDT', price: 1.00, change: 0.01 },
+      { name: 'Solana', symbol: 'SOL', price: 145, change: 5.6 },
+    ];
+  }
+}
+
+function loadMockData() {
+  appData.news = [
+    { title: 'VR технологии вышли на новый уровень', source: 'TechNews', time: '2ч' },
+    { title: 'ИИ научился управлять руками роботов', source: 'AI Daily', time: '4ч' },
+    { title: 'Новый iPhone с AR-функциями', source: 'Apple Insider', time: '6ч' },
+    { title: 'Meta представила Quest 4', source: 'VR World', time: '8ч' },
+  ];
+  appData.stocks = [
+    { name: 'Apple', symbol: 'AAPL', price: 189.45, change: 1.23 },
+    { name: 'Google', symbol: 'GOOG', price: 142.67, change: -0.45 },
+    { name: 'Microsoft', symbol: 'MSFT', price: 425.12, change: 2.15 },
+    { name: 'Tesla', symbol: 'TSLA', price: 245.89, change: -3.21 },
+  ];
+  appData.sports = [
+    { match: 'Реал Мадрид - Барселона', score: '2:1', status: 'LIVE', league: 'Ла Лига' },
+    { match: 'Лейкерс - Селтикс', score: '105:98', status: 'LIVE', league: 'NBA' },
+    { match: 'Ман Сити - Ливерпуль', score: '18:30', status: 'Скоро', league: 'АПЛ' },
+    { match: 'Бавария - Дортмунд', score: '20:00', status: 'Скоро', league: 'Бундеслига' },
+  ];
+  appData.recipes = [
+    { name: 'Паста Карбонара', time: '25 мин', difficulty: '⭐⭐' },
+    { name: 'Борщ', time: '2 часа', difficulty: '⭐⭐⭐' },
+    { name: 'Цезарь с курицей', time: '30 мин', difficulty: '⭐' },
+    { name: 'Тирамису', time: '4 часа', difficulty: '⭐⭐⭐' },
+  ];
+  appData.shopping = [
+    { item: 'Молоко', qty: '2 л', done: false },
+    { item: 'Хлеб', qty: '1 шт', done: true },
+    { item: 'Яблоки', qty: '1 кг', done: false },
+    { item: 'Сыр', qty: '300 г', done: false },
+  ];
+  appData.budget = {
+    income: 100000,
+    expenses: [
+      { cat: 'Еда', amount: 25000, color: '#e74c3c' },
+      { cat: 'Транспорт', amount: 8000, color: '#3498db' },
+      { cat: 'Жильё', amount: 40000, color: '#2ecc71' },
+      { cat: 'Развлечения', amount: 15000, color: '#f39c12' },
+    ]
+  };
+  appData.passwords = [
+    { site: 'vk.com', login: 'user123', strength: '🟢' },
+    { site: 'gmail.com', login: 'user@gmail', strength: '🟢' },
+    { site: 'github.com', login: 'dev_user', strength: '🟡' },
+    { site: 'bank.ru', login: 'client', strength: '🟢' },
+  ];
+  appData.vpn = {
+    status: 'ОТКЛ', server: 'Нидерланды', ip: '185.xxx.xxx.xxx', speed: '0 Мбит/с',
+    servers: ['🇳🇱 Нидерланды', '🇺🇸 США', '🇩🇪 Германия', '🇯🇵 Япония', '🇷🇺 Россия']
+  };
+}
+
+async function loadAllData() {
+  loadMockData();
+  await Promise.all([loadWeather(), loadCrypto()]);
+}
+
+function buildMenu(centerPos) {
+  menuVisible = true;
+  const items = APPS[CATEGORIES[currentCategory].id];
+  const cols = items.length;
+  const spacing = 0.22;
+  const startX = centerPos.x - (cols - 1) * spacing / 2;
+  
+  items.forEach((item, i) => {
+    item.pos = new Vec3(startX + i * spacing, centerPos.y + 0.15, centerPos.z - 0.3);
+  });
+}
+
+// ==================== ОТРИСОВКА ====================
+function drawHands2D() {
+  const connections = [
+    [0,1],[1,2],[2,3],[3,4], [0,5],[5,6],[6,7],[7,8],
+    [5,9],[9,10],[10,11],[11,12], [9,13],[13,14],[14,15],[15,16],
+    [13,17],[17,18],[18,19],[19,20],[0,17]
+  ];
+  
+  const colors = ['#00d2ff', '#ff00ea'];
+  
+  hands2D.forEach((hand, hi) => {
+    const color = colors[hi % 2];
+    
+    ctx.strokeStyle = color;
+    ctx.lineWidth = 5;
+    ctx.lineCap = 'round';
+    ctx.lineJoin = 'round';
+    ctx.shadowColor = color;
+    ctx.shadowBlur = 10;
+    
+    for (const [a, b] of connections) {
+      ctx.beginPath();
+      ctx.moveTo(hand[a].x, hand[a].y);
+      ctx.lineTo(hand[b].x, hand[b].y);
+      ctx.stroke();
+    }
+    
+    ctx.shadowBlur = 0;
+    
+    for (let i = 0; i < hand.length; i++) {
+      const isTip = [4,8,12,16,20].includes(i);
+      ctx.fillStyle = isTip ? '#fff' : color;
+      ctx.beginPath();
+      ctx.arc(hand[i].x, hand[i].y, isTip ? 7 : 4, 0, Math.PI*2);
+      ctx.fill();
+    }
+    
+    const tip = hand[8];
+    const pinched = isPinch2D(hand);
+    ctx.strokeStyle = pinched ? '#ffff00' : 'rgba(255,255,255,0.7)';
+    ctx.lineWidth = 3;
+    ctx.beginPath();
+    ctx.arc(tip.x, tip.y, pinched ? 20 : 12, 0, Math.PI*2);
+    ctx.stroke();
+    
+    if (pinched) {
+      ctx.fillStyle = 'rgba(255,255,0,0.3)';
+      ctx.beginPath();
+      ctx.arc(tip.x, tip.y, 20, 0, Math.PI*2);
+      ctx.fill();
+    }
+  });
+}
+
+function drawObject(obj, eyeSign, halfW, offX) {
+  const p = project(obj.pos, eyeSign, halfW, offX);
+  if (!p.visible) return;
+  const size = obj.size * p.scale * halfW * 1.5;
+  if (size < 1) return;
+  
+  // Свечение
+  if (obj.glow > 0) {
+    ctx.shadowColor = obj.color;
+    ctx.shadowBlur = 20 * obj.glow;
+  }
+  
+  const sProj = project(new Vec3(obj.pos.x, floorY, obj.pos.z), eyeSign, halfW, offX);
+  if (sProj.visible) {
+    ctx.fillStyle = 'rgba(0,0,0,0.4)';
+    ctx.beginPath();
+    ctx.ellipse(sProj.x, sProj.y, size*0.8, size*0.3, 0, 0, Math.PI*2);
+    ctx.fill();
+  }
+  
+  ctx.save();
+  ctx.translate(p.x, p.y);
+  ctx.rotate(obj.rotation);
+  ctx.fillStyle = obj.color;
+  ctx.strokeStyle = '#fff';
+  ctx.lineWidth = 2;
+  
+  if (obj.shape === 'cube') {
+    ctx.fillRect(-size, -size, size*2, size*2);
+    ctx.strokeRect(-size, -size, size*2, size*2);
+  } else if (obj.shape === 'sphere') {
+    const g = ctx.createRadialGradient(-size*0.3, -size*0.3, 0, 0, 0, size);
+    g.addColorStop(0, '#fff'); g.addColorStop(0.4, obj.color); g.addColorStop(1, '#000');
+    ctx.fillStyle = g;
+    ctx.beginPath(); ctx.arc(0, 0, size, 0, Math.PI*2); ctx.fill();
+  } else if (obj.shape === 'cylinder') {
+    ctx.fillRect(-size*0.6, -size, size*1.2, size*2);
+    ctx.strokeRect(-size*0.6, -size, size*1.2, size*2);
+  } else if (obj.shape === 'pyramid') {
+    ctx.beginPath(); ctx.moveTo(0, -size); ctx.lineTo(-size, size); ctx.lineTo(size, size); ctx.fill(); ctx.stroke();
+  }
+  
+  if (obj.held) {
+    ctx.strokeStyle = '#0ff'; ctx.lineWidth = 4;
+    ctx.beginPath(); ctx.arc(0, 0, size*1.3, 0, Math.PI*2); ctx.stroke();
+  }
+  
+  ctx.restore();
+  ctx.shadowBlur = 0;
+}
+
+function drawMenu(eyeSign, halfW, offX) {
+  if (!menuVisible) return;
+  
+  const cat = CATEGORIES[currentCategory];
+  const titlePos = project(new Vec3(0, CAM_Y + 0.4, 1.0), eyeSign, halfW, offX);
+  if (titlePos.visible) {
+    ctx.fillStyle = cat.color;
+    ctx.font = 'bold 26px Arial';
+    ctx.textAlign = 'center';
+    ctx.shadowColor = cat.color;
+    ctx.shadowBlur = 15;
+    ctx.fillText(cat.label, titlePos.x, titlePos.y);
+    ctx.shadowBlur = 0;
+    ctx.fillStyle = '#fff';
+    ctx.font = '16px Arial';
+    ctx.fillText(`${currentCategory + 1} / ${CATEGORIES.length}  ← свайп →`, titlePos.x, titlePos.y + 28);
+  }
+  
+  const items = APPS[cat.id];
+  items.forEach((item, i) => {
+    const p = project(item.pos, eyeSign, halfW, offX);
+    if (!p.visible) return;
+    const size = 0.08 * p.scale * halfW * 1.5;
+    
+    let hovered = false;
+    for (const hand of hands3D) {
+      if (dist3(hand[8], item.pos) < 0.08) hovered = true;
+    }
+    
+    ctx.save();
+    ctx.translate(p.x, p.y);
+    
+    if (hovered) {
+      ctx.shadowColor = item.color;
+      ctx.shadowBlur = 20;
+    }
+    
+    ctx.fillStyle = hovered ? item.color : 'rgba(20,20,40,0.9)';
+    ctx.strokeStyle = item.color;
+    ctx.lineWidth = hovered ? 5 : 2;
+    ctx.beginPath(); ctx.arc(0, 0, size, 0, Math.PI*2); ctx.fill(); ctx.stroke();
+    
+    ctx.shadowBlur = 0;
+    
+    ctx.fillStyle = hovered ? '#000' : '#fff';
+    ctx.font = `bold ${size*0.9}px Arial`;
+    ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    ctx.fillText(item.icon, 0, 0);
+    
+    ctx.fillStyle = '#fff';
+    ctx.font = `bold ${size*0.35}px Arial`;
+    ctx.fillText(item.label, 0, size * 1.4);
+    ctx.restore();
+  });
+}
+
+function drawFloor(eyeSign, halfW, offX) {
+  ctx.strokeStyle = 'rgba(255, 255, 255, 0.15)';
+  ctx.lineWidth = 1;
+  for(let x=-2; x<=2; x+=0.5) {
+    const p1 = project(new Vec3(x, floorY, 0.5), eyeSign, halfW, offX);
+    const p2 = project(new Vec3(x, floorY, 3.0), eyeSign, halfW, offX);
+    if(p1.visible && p2.visible) { ctx.beginPath(); ctx.moveTo(p1.x,p1.y); ctx.lineTo(p2.x,p2.y); ctx.stroke(); }
+  }
+  for(let z=0.5; z<=3; z+=0.5) {
+    const p1 = project(new Vec3(-2, floorY, z), eyeSign, halfW, offX);
+    const p2 = project(new Vec3(2, floorY, z), eyeSign, halfW, offX);
+    if(p1.visible && p2.visible) { ctx.beginPath(); ctx.moveTo(p1.x,p1.y); ctx.lineTo(p2.x,p2.y); ctx.stroke(); }
+  }
+}
+
+// ==================== ГЛАВНЫЙ ЦИКЛ ====================
+let lastTime = performance.now();
+let prevPinchState = [false, false];
+let dataRefreshTimer = 0;
+let totalObjectsGrabbed = 0;
+let totalDistance = 0;
+
+function loop() {
+  const now = performance.now();
+  const dt = Math.min((now - lastTime) / 1000, 0.1);
+  lastTime = now;
+  
+  // FPS counter
+  frameCount++;
+  if (now - lastFPSTime > 1000) {
+    FPS = frameCount;
+    frameCount = 0;
+    lastFPSTime = now;
+  }
+  
+  dataRefreshTimer += dt;
+  if (dataRefreshTimer > 60) {
+    dataRefreshTimer = 0;
+    loadWeather(); loadCrypto();
+  }
+  
+  ctx.clearRect(0, 0, W, H);
+  
+  // Обработка жестов
+  hands3D.forEach((hand, i) => {
+    const pinched = isPinch3D(hand);
+    const justPinched = pinched && !prevPinchState[i];
+    
+    // Музыка от движений
+    if (CONFIG.enableMusic && hands3D.length > 0) {
+      if (Math.random() < 0.02) playHandSound(hand);
+    }
+    
+    if (!menuVisible && !activeApp) {
+      const swipe = detectSwipe(i, hand);
+      if (swipe) {
+        if (swipe === 'left' && currentCategory < CATEGORIES.length - 1) {
+          currentCategory++;
+          ui.textContent = CATEGORIES[currentCategory].label;
+        } else if (swipe === 'right' && currentCategory > 0) {
+          currentCategory--;
+          ui.textContent = CATEGORIES[currentCategory].label;
+        }
+      }
+    }
+    
+    if (justPinched) {
+      if (checkDoubleTap(i, now)) {
+        if (activeApp) {
+          activeApp = null;
+          ui.textContent = 'Двойной щипок для меню';
+        } else if (menuVisible) {
+          menuVisible = false;
+          ui.textContent = 'Свайп для смены категории';
+        } else {
+          const palm = hand[9];
+          buildMenu(new Vec3(palm.x, palm.y + 0.2, palm.z));
+          ui.textContent = 'Выбери приложение щипком';
+        }
+      } else if (menuVisible) {
+        const tip = hand[8];
+        const items = APPS[CATEGORIES[currentCategory].id];
+        for (const item of items) {
+          if (dist3(tip, item.pos) < 0.08) {
+            if (item.type === 'object') {
+              const newObj = new PhysObject(tip, item.id, item.color);
+              objects.push(newObj);
+              newObj.held = true;
+              newObj.heldByHand = i;
+              newObj.holdOffset = newObj.pos.sub(tip);
+              menuVisible = false;
+              ui.textContent = 'Держи... Отпусти чтобы бросить';
+              totalObjectsGrabbed++;
+              emitParticles(tip, 20, 'rgba(0,255,255,1)', 1);
+              playNote(440, 0.2);
+              
+              if (totalObjectsGrabbed === 1) unlockAchievement('first_grab', 'Первый захват', 'Взял первый объект');
+              if (totalObjectsGrabbed === 10) unlockAchievement('grab_master', 'Мастер захвата', 'Взял 10 объектов');
+            } else if (item.type === 'vk') {
+              // VK Video
+              menuVisible = false;
+            } else if (item.type === 'app') {
+              activeApp = item;
+              menuVisible = false;
+              ui.textContent = item.label + ' | Двойной щипок для закрытия';
             }
+            break;
+          }
         }
-        
-        function initThreeJS() {
-            scene = new THREE.Scene();
-            camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
-            camera.position.set(0, 2, 5);
-            camera.lookAt(0, 1, 0);
-            
-            renderer = new THREE.WebGLRenderer({ 
-                canvas: document.getElementById('gameCanvas'), 
-                antialias: false,
-                alpha: true,
-                powerPreference: "high-performance"
-            });
-            renderer.setSize(window.innerWidth, window.innerHeight);
-            renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
-            renderer.setClearColor(0x000000, 0);
-            
-            const ambientLight = new THREE.AmbientLight(0xffffff, 0.9);
-            scene.add(ambientLight);
-            
-            const dirLight = new THREE.DirectionalLight(0xffffff, 0.7);
-            dirLight.position.set(5, 10, 5);
-            scene.add(dirLight);
-            
-            createRoom();
-            window.addEventListener('resize', onWindowResize);
+      } else {
+        const tip = hand[8];
+        let closest = null, minDist = 0.15;
+        for (const obj of objects) {
+          if (!obj.held) {
+            const d = dist3(tip, obj.pos);
+            if (d < minDist) { closest = obj; minDist = d; }
+          }
         }
-        
-        function createRoom() {
-            const floorGeometry = new THREE.PlaneGeometry(12, 12);
-            const floorMaterial = new THREE.MeshLambertMaterial({ 
-                color: 0x886644,
-                transparent: true,
-                opacity: 0.4
-            });
-            const floor = new THREE.Mesh(floorGeometry, floorMaterial);
-            floor.rotation.x = -Math.PI / 2;
-            scene.add(floor);
-            
-            createWall(0, 3, -6, 12, 6, 0.2, 0x888888);
-            createWall(-6, 3, 0, 0.2, 6, 12, 0x888888);
-            createWall(6, 3, 0, 0.2, 6, 12, 0x888888);
+        if (closest) {
+          closest.held = true;
+          closest.heldByHand = i;
+          closest.holdOffset = closest.pos.sub(tip);
+          ui.textContent = 'Держи...';
+          totalObjectsGrabbed++;
+          emitParticles(tip, 15, 'rgba(255,255,0,1)', 0.8);
+          playNote(523, 0.15);
         }
-        
-        function createWall(x, y, z, w, h, d, color) {
-            const geometry = new THREE.BoxGeometry(w, h, d);
-            const material = new THREE.MeshLambertMaterial({ 
-                color: color,
-                transparent: true,
-                opacity: 0.25
-            });
-            const wall = new THREE.Mesh(geometry, material);
-            wall.position.set(x, y, z);
-            scene.add(wall);
+      }
+    }
+    
+    if (!pinched && prevPinchState[i]) {
+      for (const obj of objects) {
+        if (obj.held && obj.heldByHand === i) {
+          obj.release();
+          emitParticles(obj.pos, 10, 'rgba(255,100,100,1)', 1.5);
+          playNote(262, 0.2);
         }
-        
-        function initPhysics() {
-            world = new CANNON.World();
-            world.gravity.set(0, -9.82, 0);
-            world.broadphase = new CANNON.NaiveBroadphase();
-            world.solver.iterations = 5;
-            
-            const floorShape = new CANNON.Plane();
-            const floorBody = new CANNON.Body({ mass: 0 });
-            floorBody.addShape(floorShape);
-            floorBody.quaternion.setFromAxisAngle(new CANNON.Vec3(1, 0, 0), -Math.PI / 2);
-            world.addBody(floorBody);
-            
-            createPhysicsWall(0, 3, -6, 12, 6, 0.2);
-            createPhysicsWall(-6, 3, 0, 0.2, 6, 12);
-            createPhysicsWall(6, 3, 0, 0.2, 6, 12);
-        }
-        
-        function createPhysicsWall(x, y, z, w, h, d) {
-            const shape = new CANNON.Box(new CANNON.Vec3(w/2, h/2, d/2));
-            const body = new CANNON.Body({ mass: 0 });
-            body.addShape(shape);
-            body.position.set(x, y, z);
-            world.addBody(body);
-        }
-        
-        async function initCamera() {
-            videoElement = document.getElementById('videoInput');
-            overlayCanvas = document.getElementById('handOverlay');
-            overlayCtx = overlayCanvas.getContext('2d');
-            
-            overlayCanvas.width = window.innerWidth;
-            overlayCanvas.height = window.innerHeight;
-            
-            hands = new Hands({
-                locateFile: (file) => {
-                    return `https://cdn.jsdelivr.net/npm/@mediapipe/hands@0.4.1646424915/${file}`;
-                }
-            });
-            
-            hands.setOptions({
-                maxNumHands: 1,
-                modelComplexity: 1,
-                minDetectionConfidence: 0.6,
-                minTrackingConfidence: 0.6,
-                selfieMode: false // НЕ зеркальный режим для MediaPipe
-            });
-            
-            hands.onResults(onHandResults);
-            
-            const stream = await navigator.mediaDevices.getUserMedia({ 
-                video: { 
-                    width: { ideal: 1280 },
-                    height: { ideal: 720 },
-                    facingMode: 'user'
-                } 
-            });
-            
-            videoElement.srcObject = stream;
-            
-            await new Promise((resolve, reject) => {
-                videoElement.onloadedmetadata = () => {
-                    videoElement.play().then(resolve).catch(reject);
-                };
-            });
-            
-            const cam = new Camera(videoElement, {
-                onFrame: async () => {
-                    await hands.send({ image: videoElement });
-                },
-                width: 1280,
-                height: 720
-            });
-            cam.start();
-        }
-        
-        function onHandResults(results) {
-            overlayCtx.clearRect(0, 0, overlayCanvas.width, overlayCanvas.height);
-            
-            if (results.multiHandLandmarks && results.multiHandLandmarks.length > 0) {
-                const landmarks = results.multiHandLandmarks[0];
-                lastLandmarks = landmarks;
-                
-                drawHandSkeleton(landmarks);
-                updateHandSkeleton3D(landmarks);
-                updateHandVelocity(landmarks);
-                checkGestures(landmarks);
-                interactWithObjects(landmarks);
-                
-                if (isMenuOpen && radialMenu) {
-                    checkMenuInteraction(landmarks);
-                }
-                
-            } else {
-                lastLandmarks = null;
-                
-                if (handSkeleton) {
-                    handSkeleton.joints.forEach(j => j.visible = false);
-                    handSkeleton.bones.forEach(b => b.visible = false);
-                }
-                
-                if (grabbedObject) releaseObject();
-            }
-        }
-        
-        function drawHandSkeleton(landmarks) {
-            overlayCtx.strokeStyle = '#00ff88';
-            overlayCtx.lineWidth = 4;
-            overlayCtx.lineCap = 'round';
-            overlayCtx.shadowBlur = 10;
-            overlayCtx.shadowColor = '#00ff88';
-            
-            HAND_CONNECTIONS.forEach(([start, end]) => {
-                // Координаты как есть, без инверсии X
-                const x1 = landmarks[start].x * overlayCanvas.width;
-                const y1 = landmarks[start].y * overlayCanvas.height;
-                const x2 = landmarks[end].x * overlayCanvas.width;
-                const y2 = landmarks[end].y * overlayCanvas.height;
-                
-                overlayCtx.beginPath();
-                overlayCtx.moveTo(x1, y1);
-                overlayCtx.lineTo(x2, y2);
-                overlayCtx.stroke();
-            });
-            
-            landmarks.forEach((landmark, index) => {
-                const x = landmark.x * overlayCanvas.width;
-                const y = landmark.y * overlayCanvas.height;
-                const isFingertip = [4, 8, 12, 16, 20].includes(index);
-                
-                overlayCtx.fillStyle = isFingertip ? '#ffff00' : '#00ff88';
-                overlayCtx.shadowBlur = isFingertip ? 15 : 8;
-                overlayCtx.shadowColor = isFingertip ? '#ffff00' : '#00ff88';
-                overlayCtx.beginPath();
-                overlayCtx.arc(x, y, isFingertip ? 10 : 6, 0, 2 * Math.PI);
-                overlayCtx.fill();
-            });
-            
-            overlayCtx.shadowBlur = 0;
-        }
-        
-        function updateHandSkeleton3D(landmarks) {
-            if (!handSkeleton) {
-                handSkeleton = createHandSkeleton3D();
-            }
-            
-            handSkeleton.joints.forEach(j => j.visible = true);
-            handSkeleton.bones.forEach(b => b.visible = true);
-            
-            landmarks.forEach((landmark, index) => {
-                // Для фронтальной камеры без selfieMode:
-                // X инвертируем (0.5 - x) чтобы скелет был там же, где рука на экране
-                const x = (0.5 - landmark.x) * 5;
-                const y = (0.5 - landmark.y) * 5;
-                const z = -landmark.z * 4;
-                
-                if (handSkeleton.joints[index]) {
-                    handSkeleton.joints[index].position.set(x, y + 2, z);
-                }
-            });
-            
-            HAND_CONNECTIONS.forEach(([startIdx, endIdx], connIdx) => {
-                if (handSkeleton.bones[connIdx]) {
-                    const start = handSkeleton.joints[startIdx].position;
-                    const end = handSkeleton.joints[endIdx].position;
-                    const direction = new THREE.Vector3().subVectors(end, start);
-                    const length = direction.length();
-                    const midpoint = new THREE.Vector3().addVectors(start, end).multiplyScalar(0.5);
-                    
-                    handSkeleton.bones[connIdx].position.copy(midpoint);
-                    handSkeleton.bones[connIdx].scale.y = length;
-                    
-                    const axis = new THREE.Vector3(0, 1, 0);
-                    const quaternion = new THREE.Quaternion().setFromUnitVectors(axis, direction.normalize());
-                    handSkeleton.bones[connIdx].quaternion.copy(quaternion);
-                }
-            });
-        }
-        
-        function createHandSkeleton3D() {
-            const skeleton = { joints: [], bones: [] };
-            const color = 0x00ff88;
-            
-            for (let i = 0; i < 21; i++) {
-                const isFingertip = [4, 8, 12, 16, 20].includes(i);
-                const size = isFingertip ? 0.05 : 0.035;
-                
-                const geometry = new THREE.SphereGeometry(size, 8, 8);
-                const material = new THREE.MeshBasicMaterial({ 
-                    color: color,
-                    transparent: true,
-                    opacity: 0.9
-                });
-                const joint = new THREE.Mesh(geometry, material);
-                joint.visible = false;
-                scene.add(joint);
-                skeleton.joints.push(joint);
-            }
-            
-            HAND_CONNECTIONS.forEach(() => {
-                const geometry = new THREE.CylinderGeometry(0.018, 0.018, 1, 6);
-                const material = new THREE.MeshBasicMaterial({ 
-                    color: color,
-                    transparent: true,
-                    opacity: 0.8
-                });
-                const bone = new THREE.Mesh(geometry, material);
-                bone.visible = false;
-                scene.add(bone);
-                skeleton.bones.push(bone);
-            });
-            
-            return skeleton;
-        }
-        
-        function updateHandVelocity(landmarks) {
-            const indexTip = landmarks[8];
-            const pos = getHandPosition3D(indexTip);
-            
-            handPositionHistory.push({ pos: pos.clone(), time: performance.now() });
-            
-            if (handPositionHistory.length > HISTORY_SIZE) {
-                handPositionHistory.shift();
-            }
-        }
-        
-        function getHandVelocity() {
-            if (handPositionHistory.length < 2) return new THREE.Vector3(0, 0, 0);
-            
-            const current = handPositionHistory[handPositionHistory.length - 1];
-            const old = handPositionHistory[0];
-            const timeDiff = (current.time - old.time) / 1000;
-            
-            if (timeDiff < 0.001) return new THREE.Vector3(0, 0, 0);
-            
-            const velocity = new THREE.Vector3().subVectors(current.pos, old.pos);
-            velocity.divideScalar(timeDiff);
-            
-            return velocity;
-        }
-        
-        function checkGestures(landmarks) {
-            const thumbTip = landmarks[4];
-            const indexTip = landmarks[8];
-            
-            const distance = Math.sqrt(
-                Math.pow(thumbTip.x - indexTip.x, 2) +
-                Math.pow(thumbTip.y - indexTip.y, 2) +
-                Math.pow(thumbTip.z - indexTip.z, 2)
-            );
-            
-            const threshold = 0.06;
-            const now = Date.now();
-            
-            if (distance < threshold && !isPinching) {
-                isPinching = true;
-                
-                const indicator = document.getElementById('gestureIndicator');
-                // Координаты без инверсии X
-                const x = thumbTip.x * overlayCanvas.width;
-                const y = thumbTip.y * overlayCanvas.height;
-                indicator.style.left = (x - 60) + 'px';
-                indicator.style.top = (y - 60) + 'px';
-                indicator.classList.add('active');
-                
-                if (now - lastPinchTime > 400) {
-                    pinchCount++;
-                    lastPinchTime = now;
-                    
-                    if (pinchCount === 2) {
-                        const menuPos = getHandPosition3D(thumbTip);
-                        createMenu(menuPos);
-                        pinchCount = 0;
-                        updateStatus('✅ Меню открыто');
-                    }
-                    
-                    setTimeout(() => { if (pinchCount === 1) pinchCount = 0; }, 800);
-                }
-                
-                if (!isMenuOpen && !grabbedObject) {
-                    tryGrabObject(indexTip);
-                }
-                
-            } else if (distance >= threshold && isPinching) {
-                isPinching = false;
-                document.getElementById('gestureIndicator').classList.remove('active');
-                
-                if (grabbedObject) releaseObject();
-            }
-        }
-        
-        function getHandPosition3D(landmark) {
-            // X инвертируем для правильного положения в 3D
-            const x = (0.5 - landmark.x) * 5;
-            const y = (0.5 - landmark.y) * 5;
-            const z = -landmark.z * 4;
-            return new THREE.Vector3(x, y + 2, z);
-        }
-        
-        function tryGrabObject(indexTip) {
-            const handPos = getHandPosition3D(indexTip);
-            
-            let closest = null;
-            let closestDist = Infinity;
-            
-            physicsObjects.forEach(obj => {
-                const objPos = new THREE.Vector3(
-                    obj.body.position.x,
-                    obj.body.position.y,
-                    obj.body.position.z
-                );
-                const dist = handPos.distanceTo(objPos);
-                
-                if (dist < obj.userData.size * 1.8 && dist < closestDist) {
-                    closestDist = dist;
-                    closest = obj;
-                }
-            });
-            
-            if (closest) {
-                grabbedObject = closest;
-                grabbedObject.userData.grabbed = true;
-                grabbedObject.body.type = CANNON.Body.KINEMATIC;
-                grabbedObject.body.velocity.set(0, 0, 0);
-                grabbedObject.body.angularVelocity.set(0, 0, 0);
-                
-                grabbedObject.mesh.material.emissive.setHex(0x444444);
-                grabbedObject.mesh.material.emissiveIntensity = 0.5;
-                
-                updateStatus(`🎯 Захвачен: ${closest.userData.name}`);
-            }
-        }
-        
-        function releaseObject() {
-            if (!grabbedObject) return;
-            
-            const velocity = getHandVelocity();
-            const throwMultiplier = 2.0;
-            
-            grabbedObject.body.type = CANNON.Body.DYNAMIC;
-            grabbedObject.body.velocity.set(
-                velocity.x * throwMultiplier,
-                velocity.y * throwMultiplier,
-                velocity.z * throwMultiplier
-            );
-            grabbedObject.body.angularVelocity.set(
-                (Math.random() - 0.5) * 5,
-                (Math.random() - 0.5) * 5,
-                (Math.random() - 0.5) * 5
-            );
-            
-            grabbedObject.mesh.material.emissive.setHex(0x000000);
-            grabbedObject.mesh.material.emissiveIntensity = 0.1;
-            grabbedObject.userData.grabbed = false;
-            grabbedObject = null;
-            
-            updateStatus('💨 Бросок!');
-        }
-        
-        function interactWithObjects(landmarks) {
-            if (grabbedObject) {
-                const indexTip = landmarks[8];
-                const handPos = getHandPosition3D(indexTip);
-                
-                grabbedObject.body.position.set(handPos.x, handPos.y, handPos.z);
-                grabbedObject.body.velocity.set(0, 0, 0);
-                grabbedObject.body.angularVelocity.set(0, 0, 0);
-                return;
-            }
-            
-            if (!isPinching) {
-                const indexTip = landmarks[8];
-                const handPos = getHandPosition3D(indexTip);
-                
-                physicsObjects.forEach(obj => {
-                    if (obj.userData.grabbed) return;
-                    
-                    const objPos = new THREE.Vector3(
-                        obj.body.position.x,
-                        obj.body.position.y,
-                        obj.body.position.z
-                    );
-                    const dist = handPos.distanceTo(objPos);
-                    
-                    if (dist < obj.userData.size + 0.2) {
-                        const direction = new THREE.Vector3()
-                            .subVectors(objPos, handPos)
-                            .normalize();
-                        
-                        obj.body.applyImpulse(
-                            new CANNON.Vec3(
-                                direction.x * 6,
-                                direction.y * 6 + 2,
-                                direction.z * 6
-                            ),
-                            obj.body.position
-                        );
-                    }
-                });
-            }
-        }
-        
-        function createMenu(position) {
-            if (radialMenu) scene.remove(radialMenu);
-            
-            radialMenu = new THREE.Group();
-            radialMenu.position.copy(position);
-            radialMenu.position.z -= 1.5;
-            
-            const panelGeometry = new THREE.PlaneGeometry(3.5, 2.5);
-            const panelMaterial = new THREE.MeshBasicMaterial({ 
-                color: 0x1a1a2e,
-                transparent: true,
-                opacity: 0.95,
-                side: THREE.DoubleSide
-            });
-            const panel = new THREE.Mesh(panelGeometry, panelMaterial);
-            radialMenu.add(panel);
-            
-            const frameGeometry = new THREE.EdgesGeometry(panelGeometry);
-            const frameMaterial = new THREE.LineBasicMaterial({ 
-                color: 0x00ff88,
-                linewidth: 3
-            });
-            const frame = new THREE.LineSegments(frameGeometry, frameMaterial);
-            radialMenu.add(frame);
-            
-            const cols = 4;
-            const spacing = 0.75;
-            const startX = -((Math.min(spawnItems.length, cols) - 1) * spacing) / 2;
-            
-            spawnItems.forEach((item, index) => {
-                const row = Math.floor(index / cols);
-                const col = index % cols;
-                const x = startX + col * spacing;
-                const y = 0.4 - row * spacing;
-                
-                let buttonMesh;
-                if (item.type === 'ball') {
-                    const geometry = new THREE.SphereGeometry(0.25, 16, 16);
-                    const material = getMaterial(item.color);
-                    buttonMesh = new THREE.Mesh(geometry, material);
-                } else {
-                    const geometry = new THREE.BoxGeometry(0.4, 0.4, 0.4);
-                    const material = getMaterial(item.color);
-                    buttonMesh = new THREE.Mesh(geometry, material);
-                }
-                
-                buttonMesh.position.set(x, y, 0.15);
-                buttonMesh.userData = { item: item, originalColor: item.color, isSpawnButton: true };
-                radialMenu.add(buttonMesh);
-            });
-            
-            const closeGeometry = new THREE.SphereGeometry(0.2, 16, 16);
-            const closeMaterial = new THREE.MeshBasicMaterial({ color: 0xff4444 });
-            const closeButton = new THREE.Mesh(closeGeometry, closeMaterial);
-            closeButton.position.set(1.5, 1.0, 0.15);
-            closeButton.userData = { isCloseButton: true, originalColor: 0xff4444 };
-            radialMenu.add(closeButton);
-            
-            scene.add(radialMenu);
-            isMenuOpen = true;
-        }
-        
-        function checkMenuInteraction(landmarks) {
-            if (!radialMenu) return;
-            
-            const indexTip = landmarks[8];
-            const handPos = getHandPosition3D(indexTip);
-            
-            radialMenu.children.forEach(button => {
-                if (!button.userData) return;
-                
-                const buttonWorldPos = button.position.clone().add(radialMenu.position);
-                const distance = handPos.distanceTo(buttonWorldPos);
-                
-                const hoverRadius = button.userData.isCloseButton ? 0.3 : 0.35;
-                
-                if (distance < hoverRadius) {
-                    button.material.color.setHex(0xffff00);
-                    button.scale.set(1.3, 1.3, 1.3);
-                    
-                    if (isPinching) {
-                        handleMenuClick(button);
-                    }
-                } else {
-                    button.material.color.setHex(button.userData.originalColor);
-                    button.scale.set(1, 1, 1);
-                }
-            });
-        }
-        
-        function handleMenuClick(button) {
-            if (button.userData.isCloseButton) {
-                scene.remove(radialMenu);
-                radialMenu = null;
-                isMenuOpen = false;
-                updateStatus('❌ Меню закрыто');
-            } else if (button.userData.isSpawnButton) {
-                spawnItem(button.userData.item);
-                scene.remove(radialMenu);
-                radialMenu = null;
-                isMenuOpen = false;
-                updateStatus(`✅ Создан: ${button.userData.item.name}`);
-                document.getElementById('objectCounter').textContent = `Объекты: ${physicsObjects.length}`;
-            }
-        }
-        
-        function spawnItem(itemData) {
-            let geometry, shape;
-            
-            if (itemData.type === 'ball') {
-                geometry = new THREE.SphereGeometry(itemData.size, 16, 16);
-                shape = new CANNON.Sphere(itemData.size);
-            } else {
-                geometry = new THREE.BoxGeometry(itemData.size, itemData.size, itemData.size);
-                shape = new CANNON.Box(new CANNON.Vec3(
-                    itemData.size/2, itemData.size/2, itemData.size/2
-                ));
-            }
-            
-            const material = getMaterial(itemData.color);
-            const mesh = new THREE.Mesh(geometry, material);
-            
-            const spawnPos = new THREE.Vector3(
-                (Math.random() - 0.5) * 3,
-                2.5 + Math.random(),
-                2.5 + Math.random()
-            );
-            mesh.position.copy(spawnPos);
-            scene.add(mesh);
-            
-            const body = new CANNON.Body({
-                mass: itemData.mass,
-                position: new CANNON.Vec3(spawnPos.x, spawnPos.y, spawnPos.z)
-            });
-            body.addShape(shape);
-            body.linearDamping = 0.15;
-            body.angularDamping = 0.25;
-            world.addBody(body);
-            
-            physicsObjects.push({
-                mesh: mesh,
-                body: body,
-                userData: {
-                    name: itemData.name,
-                    size: itemData.size,
-                    type: itemData.type,
-                    grabbed: false
-                }
-            });
-            
-            if (physicsObjects.length > 40) {
-                const old = physicsObjects.shift();
-                scene.remove(old.mesh);
-                world.remove(old.body);
-            }
-        }
-        
-        function updateStatus(text) {
-            document.getElementById('status').textContent = text;
-        }
-        
-        function onWindowResize() {
-            camera.aspect = window.innerWidth / window.innerHeight;
-            camera.updateProjectionMatrix();
-            renderer.setSize(window.innerWidth, window.innerHeight);
-            overlayCanvas.width = window.innerWidth;
-            overlayCanvas.height = window.innerHeight;
-        }
-        
-        function animate() {
-            if (!gameStarted) return;
-            
-            requestAnimationFrame(animate);
-            
-            world.step(1/60);
-            
-            physicsObjects.forEach(obj => {
-                if (!obj.userData.grabbed) {
-                    obj.mesh.position.copy(obj.body.position);
-                    obj.mesh.quaternion.copy(obj.body.quaternion);
-                }
-            });
-            
-            renderer.render(scene, camera);
-        }
-    </script>
+      }
+    }
+    
+    prevPinchState[i] = pinched;
+    
+    if (hand[0].y < CAM_Y - 0.6) {
+      floorY = Math.min(floorY, hand[0].y - 0.1);
+    }
+  });
+  
+  // Физика
+  for (const obj of objects) obj.update(dt, now);
+  objects = objects.filter(o => o.pos.y > -10);
+  
+  // Частицы
+  particles = particles.filter(p => p.life > 0);
+  particles.forEach(p => p.update(dt));
+  
+  // Стерео рендер
+  const halfW = W / 2;
+  for (let eye = 0; eye < 2; eye++) {
+    const eyeSign = eye === 0 ? -1 : 1;
+    const offX = eye * halfW;
+    
+    ctx.save();
+    ctx.beginPath(); ctx.rect(offX, 0, halfW, H); ctx.clip();
+    
+    currentWorld.draw(eyeSign, halfW, offX);
+    drawFloor(eyeSign, halfW, offX);
+    
+    objects.sort((a,b) => b.pos.z - a.pos.z).forEach(obj => drawObject(obj, eyeSign, halfW, offX));
+    
+    particles.forEach(p => p.draw(eyeSign, halfW, offX));
+    
+    drawMenu(eyeSign, halfW, offX);
+    
+    ctx.restore();
+  }
+  
+  drawHands2D();
+  
+  // Статистика
+  if (CONFIG.enableStats) {
+    stats.style.display = 'block';
+    stats.innerHTML = `FPS: ${FPS}<br>Объекты: ${objects.length}<br>Частицы: ${particles.length}<br>Мир: ${CONFIG.currentWorld}`;
+  }
+  
+  requestAnimationFrame(loop);
+}
+
+// ==================== СТАРТ ====================
+startBtn.addEventListener('click', async () => {
+  if (window.innerWidth <= window.innerHeight) {
+    errorMsg.style.display = 'block';
+    errorMsg.textContent = '⚠️ Поверни телефон горизонтально!';
+    return;
+  }
+  
+  startBtn.disabled = true;
+  startBtn.textContent = '⏳ ЗАПУСК...';
+  
+  const ok = await requestCamera();
+  if (!ok) return;
+  
+  startScreen.style.display = 'none';
+  loading.style.display = 'flex';
+  
+  try {
+    initAudio();
+    await initHandTracking();
+    await loadAllData();
+    loading.style.display = 'none';
+    ui.style.display = 'block';
+    
+    unlockAchievement('welcome', 'Добро пожаловать!', 'Запустил ULTIMATE VR');
+    
+    loop();
+  } catch (e) {
+    loadingText.textContent = 'Ошибка: ' + e.message;
+  }
+});
+</script>
 </body>
 </html>
