@@ -2,16 +2,14 @@
 <html lang="ru">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-    <title>VR Room Designer - Hand Tracking FIXED</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>VR Room - Front Camera</title>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body { 
             overflow: hidden; 
             font-family: Arial, sans-serif; 
             background: #000;
-            width: 100vw;
-            height: 100vh;
         }
         
         #videoInput {
@@ -22,7 +20,7 @@
             height: 100vh;
             object-fit: cover;
             z-index: 0;
-            transform: scaleX(-1); /* Зеркалим видео как в обычном зеркале */
+            transform: scaleX(-1);
         }
         
         #gameCanvas { 
@@ -42,7 +40,7 @@
             height: 100vh;
             z-index: 2;
             pointer-events: none;
-            transform: scaleX(-1); /* Зеркалим overlay вместе с видео */
+            transform: scaleX(-1);
         }
         
         #loading {
@@ -76,69 +74,6 @@
         
         @keyframes spin { to { transform: rotate(360deg); } }
         
-        #gestureIndicator {
-            position: fixed; 
-            width: 100px; height: 100px;
-            border: 5px solid rgba(0, 255, 0, 0.9);
-            border-radius: 50%; 
-            pointer-events: none;
-            opacity: 0; 
-            transition: opacity 0.15s, transform 0.15s;
-            z-index: 100;
-            box-shadow: 0 0 30px rgba(0, 255, 0, 0.8);
-            transform: scaleX(-1); /* Зеркалим индикатор */
-        }
-        
-        #gestureIndicator.active {
-            opacity: 1;
-            transform: scaleX(-1) scale(1.1);
-        }
-        
-        #status {
-            position: fixed;
-            top: 20px;
-            left: 20px;
-            background: rgba(0, 0, 0, 0.9);
-            color: #00ff00;
-            padding: 12px 18px;
-            border-radius: 10px;
-            font-size: 13px;
-            z-index: 1000;
-            font-family: monospace;
-            max-width: 350px;
-            border: 2px solid #00ff00;
-        }
-        
-        #handInfo {
-            position: fixed;
-            top: 80px;
-            left: 20px;
-            background: rgba(0, 0, 0, 0.9);
-            color: #00d4ff;
-            padding: 10px 15px;
-            border-radius: 8px;
-            font-size: 13px;
-            z-index: 1000;
-            font-family: monospace;
-            border: 2px solid #00d4ff;
-        }
-        
-        #instructions {
-            position: fixed;
-            bottom: 20px;
-            left: 50%;
-            transform: translateX(-50%);
-            background: rgba(0, 0, 0, 0.9);
-            color: white;
-            padding: 15px 25px;
-            border-radius: 12px;
-            font-size: 14px;
-            text-align: center;
-            z-index: 100;
-            max-width: 90%;
-            border: 2px solid #00d4ff;
-        }
-        
         #startButton {
             position: fixed;
             top: 50%;
@@ -156,59 +91,82 @@
             box-shadow: 0 10px 40px rgba(0, 212, 255, 0.6);
         }
         
-        #error {
+        #status {
             position: fixed;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            background: rgba(255, 0, 0, 0.95);
-            color: white;
-            padding: 40px;
-            border-radius: 15px;
-            font-size: 18px;
-            text-align: center;
-            z-index: 10002;
-            display: none;
-            max-width: 80%;
+            top: 20px;
+            left: 20px;
+            background: rgba(0, 0, 0, 0.9);
+            color: #00ff00;
+            padding: 12px 18px;
+            border-radius: 10px;
+            font-size: 14px;
+            z-index: 1000;
+            border: 2px solid #00ff00;
         }
         
-        #error button {
-            margin-top: 20px;
-            padding: 15px 40px;
-            background: white;
-            color: red;
-            border: none;
+        #handInfo {
+            position: fixed;
+            top: 80px;
+            left: 20px;
+            background: rgba(0, 0, 0, 0.9);
+            color: #00d4ff;
+            padding: 10px 15px;
             border-radius: 8px;
-            font-size: 18px;
-            cursor: pointer;
-            font-weight: bold;
+            font-size: 14px;
+            z-index: 1000;
+            border: 2px solid #00d4ff;
+        }
+        
+        #instructions {
+            position: fixed;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(0, 0, 0, 0.9);
+            color: white;
+            padding: 15px 25px;
+            border-radius: 12px;
+            font-size: 14px;
+            text-align: center;
+            z-index: 100;
+            border: 2px solid #00d4ff;
+        }
+        
+        #gestureIndicator {
+            position: fixed; 
+            width: 100px; height: 100px;
+            border: 5px solid rgba(0, 255, 0, 0.9);
+            border-radius: 50%; 
+            pointer-events: none;
+            opacity: 0; 
+            z-index: 100;
+            box-shadow: 0 0 30px rgba(0, 255, 0, 0.8);
+            transform: scaleX(-1);
+        }
+        
+        #gestureIndicator.active {
+            opacity: 1;
         }
     </style>
 </head>
 <body>
     <div id="loading">
-        <h1>🖐 VR Room Designer</h1>
+        <h1> VR Room Designer</h1>
         <div class="loader"></div>
-        <p style="margin-top: 20px; font-size: 18px;">Загрузка трекинга рук...</p>
+        <p style="margin-top: 20px;">Загрузка...</p>
     </div>
     
-    <button id="startButton">🎮 НАЧАТЬ ИГРУ</button>
-    
-    <div id="error">
-        <h2>❌ Ошибка камеры</h2>
-        <p id="errorMessage">Не удалось получить доступ к камере</p>
-        <button onclick="location.reload()">Попробовать снова</button>
-    </div>
+    <button id="startButton">🎮 НАЧАТЬ</button>
     
     <video id="videoInput" autoplay playsinline muted></video>
     <canvas id="gameCanvas"></canvas>
     <canvas id="handOverlay"></canvas>
     
     <div id="gestureIndicator"></div>
-    <div id="handInfo">Рука: не обнаружена</div>
-    <div id="status">Ожидание запуска...</div>
+    <div id="handInfo"> Фронтальная камера</div>
+    <div id="status">Нажми кнопку для старта</div>
     <div id="instructions">
-        ✋ Покажи руку камере (ладонью к экрану) | 🤏 Щипок = взять предмет | 🎯 Двойной щипок = меню
+        ✋ Покажи руку |  Щипок = взять |  Двойной щипок = меню
     </div>
     
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
@@ -217,8 +175,7 @@
     <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils@0.3.1640029074/camera_utils.min.js"></script>
     
     <script>
-        let scene, camera, renderer;
-        let world;
+        let scene, camera, renderer, world;
         let physicsObjects = [];
         let handSkeletons = { left: null, right: null };
         let hands, videoElement, overlayCanvas, overlayCtx;
@@ -232,9 +189,6 @@
         let currentHand = null;
         let lastLandmarks = null;
         
-        let handPositionHistory = { left: [], right: [] };
-        const HISTORY_SIZE = 5;
-        
         const HAND_CONNECTIONS = [
             [0, 1], [1, 2], [2, 3], [3, 4],
             [0, 5], [5, 6], [6, 7], [7, 8],
@@ -246,12 +200,8 @@
         const spawnItems = [
             { name: '🧊 Красный куб', type: 'cube', color: 0xe74c3c, size: 0.3 },
             { name: '🧊 Синий куб', type: 'cube', color: 0x3498db, size: 0.3 },
-            { name: '🧊 Зелёный куб', type: 'cube', color: 0x2ecc71, size: 0.3 },
-            { name: '🧊 Жёлтый куб', type: 'cube', color: 0xf1c40f, size: 0.3 },
-            { name: '⚽ Футбольный мяч', type: 'ball', color: 0x2c3e50, size: 0.25 },
-            { name: '🎾 Теннисный мяч', type: 'ball', color: 0xcddc39, size: 0.15 },
-            { name: '🏀 Баскетбольный', type: 'ball', color: 0xff5722, size: 0.3 },
-            { name: '🎱 Бильярдный шар', type: 'ball', color: 0x000000, size: 0.12 }
+            { name: '⚽ Мяч', type: 'ball', color: 0x2c3e50, size: 0.25 },
+            { name: '🎾 Теннисный', type: 'ball', color: 0xcddc39, size: 0.15 }
         ];
         
         document.getElementById('startButton').addEventListener('click', async () => {
@@ -266,13 +216,11 @@
                 await initCamera();
                 document.getElementById('loading').style.display = 'none';
                 gameStarted = true;
-                updateStatus('✅ Фронтальная камера активна! Покажи руку ладонью к экрану');
+                updateStatus('✅ Фронтальная камера активна!');
                 animate();
             } catch (error) {
                 console.error('Ошибка:', error);
-                document.getElementById('loading').style.display = 'none';
-                document.getElementById('errorMessage').textContent = error.message;
-                document.getElementById('error').style.display = 'block';
+                alert('Ошибка камеры: ' + error.message);
             }
         }
         
@@ -285,22 +233,15 @@
             renderer = new THREE.WebGLRenderer({ 
                 canvas: document.getElementById('gameCanvas'), 
                 antialias: false,
-                alpha: true,
-                powerPreference: "high-performance"
+                alpha: true
             });
             renderer.setSize(window.innerWidth, window.innerHeight);
-            renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
             renderer.setClearColor(0x000000, 0);
             
             const ambientLight = new THREE.AmbientLight(0xffffff, 0.8);
             scene.add(ambientLight);
             
-            const dirLight = new THREE.DirectionalLight(0xffffff, 0.6);
-            dirLight.position.set(5, 10, 5);
-            scene.add(dirLight);
-            
             createRoom();
-            window.addEventListener('resize', onWindowResize);
         }
         
         function createRoom() {
@@ -337,14 +278,6 @@
             world.broadphase = new CANNON.NaiveBroadphase();
             world.solver.iterations = 5;
             
-            const defaultMaterial = new CANNON.Material('default');
-            const contactMaterial = new CANNON.ContactMaterial(
-                defaultMaterial, defaultMaterial,
-                { friction: 0.3, restitution: 0.5 }
-            );
-            world.addContactMaterial(contactMaterial);
-            world.defaultContactMaterial = contactMaterial;
-            
             const floorShape = new CANNON.Plane();
             const floorBody = new CANNON.Body({ mass: 0 });
             floorBody.addShape(floorShape);
@@ -372,7 +305,6 @@
             overlayCanvas.width = window.innerWidth;
             overlayCanvas.height = window.innerHeight;
             
-            // ВАЖНО: selfieMode: true для фронтальной камеры!
             hands = new Hands({
                 locateFile: (file) => {
                     return `https://cdn.jsdelivr.net/npm/@mediapipe/hands@0.4.1646424915/${file}`;
@@ -382,9 +314,9 @@
             hands.setOptions({
                 maxNumHands: 2,
                 modelComplexity: 1,
-                minDetectionConfidence: 0.5, // Пониженный порог для лучшей детекции
+                minDetectionConfidence: 0.5,
                 minTrackingConfidence: 0.5,
-                selfieMode: true // ВАЖНО! Режим селфи для фронтальной камеры
+                selfieMode: true // ФРОНТАЛЬНАЯ КАМЕРА
             });
             
             hands.onResults(onHandResults);
@@ -394,7 +326,7 @@
                 video: { 
                     width: { ideal: 1280 },
                     height: { ideal: 720 },
-                    facingMode: 'user' // ФРОНТАЛЬНАЯ КАМЕРА
+                    facingMode: 'user' // <-- ФРОНТАЛЬНАЯ КАМЕРА
                 } 
             });
             
@@ -404,7 +336,6 @@
                 videoElement.onloadedmetadata = () => {
                     videoElement.play().then(resolve).catch(reject);
                 };
-                videoElement.onerror = () => reject(new Error('Ошибка видео'));
             });
             
             const cam = new Camera(videoElement, {
@@ -421,11 +352,9 @@
             overlayCtx.clearRect(0, 0, overlayCanvas.width, overlayCanvas.height);
             
             if (results.multiHandLandmarks && results.multiHandLandmarks.length > 0) {
-                // Берём первую обнаруженную руку
                 const landmarks = results.multiHandLandmarks[0];
                 const handedness = results.multiHandedness[0].label;
                 
-                // В selfieMode MediaPipe правильно определяет руку
                 currentHand = handedness.toLowerCase();
                 lastLandmarks = landmarks;
                 
@@ -434,7 +363,6 @@
                 
                 drawHandSkeleton(landmarks, currentHand);
                 updateHandSkeleton3D(landmarks, currentHand);
-                updateHandVelocity(landmarks, currentHand);
                 checkGestures(landmarks, currentHand);
                 interactWithObjects(landmarks, currentHand);
                 
@@ -445,18 +373,9 @@
             } else {
                 currentHand = null;
                 lastLandmarks = null;
-                document.getElementById('handInfo').textContent = 'Рука: не обнаружена';
+                document.getElementById('handInfo').textContent = ' Фронтальная камера';
                 
-                Object.values(handSkeletons).forEach(skeleton => {
-                    if (skeleton) {
-                        skeleton.joints.forEach(j => j.visible = false);
-                        skeleton.bones.forEach(b => b.visible = false);
-                    }
-                });
-                
-                if (grabbedObject) {
-                    releaseObject();
-                }
+                if (grabbedObject) releaseObject();
             }
         }
         
@@ -482,18 +401,12 @@
             landmarks.forEach((landmark, index) => {
                 const x = landmark.x * overlayCanvas.width;
                 const y = landmark.y * overlayCanvas.height;
-                
                 const isFingertip = [4, 8, 12, 16, 20].includes(index);
-                const radius = isFingertip ? 8 : 5;
                 
                 overlayCtx.fillStyle = isFingertip ? '#ffff00' : color;
                 overlayCtx.beginPath();
-                overlayCtx.arc(x, y, radius, 0, 2 * Math.PI);
+                overlayCtx.arc(x, y, isFingertip ? 8 : 5, 0, 2 * Math.PI);
                 overlayCtx.fill();
-                
-                overlayCtx.strokeStyle = '#ffffff';
-                overlayCtx.lineWidth = 2;
-                overlayCtx.stroke();
             });
         }
         
@@ -503,8 +416,8 @@
             }
             
             const skeleton = handSkeletons[handedness];
-            
             const otherHand = handedness === 'left' ? 'right' : 'left';
+            
             if (handSkeletons[otherHand]) {
                 handSkeletons[otherHand].joints.forEach(j => j.visible = false);
                 handSkeletons[otherHand].bones.forEach(b => b.visible = false);
@@ -514,8 +427,7 @@
             skeleton.bones.forEach(b => b.visible = true);
             
             landmarks.forEach((landmark, index) => {
-                // Для фронтальной камеры с selfieMode: X инвертируем (зеркало), Y инвертируем, Z инвертируем
-                const x = (0.5 - landmark.x) * 4; // Инвертируем X для зеркала
+                const x = (0.5 - landmark.x) * 4;
                 const y = (0.5 - landmark.y) * 4;
                 const z = -landmark.z * 3;
                 
@@ -528,7 +440,6 @@
                 if (skeleton.bones[connIdx]) {
                     const start = skeleton.joints[startIdx].position;
                     const end = skeleton.joints[endIdx].position;
-                    
                     const direction = new THREE.Vector3().subVectors(end, start);
                     const length = direction.length();
                     const midpoint = new THREE.Vector3().addVectors(start, end).multiplyScalar(0.5);
@@ -548,10 +459,7 @@
             const color = handKey === 'left' ? 0x00ff00 : 0xff00ff;
             
             for (let i = 0; i < 21; i++) {
-                const isFingertip = [4, 8, 12, 16, 20].includes(i);
-                const size = isFingertip ? 0.04 : 0.03;
-                
-                const geometry = new THREE.SphereGeometry(size, 8, 8);
+                const geometry = new THREE.SphereGeometry(0.03, 8, 8);
                 const material = new THREE.MeshBasicMaterial({ color: color });
                 const joint = new THREE.Mesh(geometry, material);
                 joint.visible = false;
@@ -571,34 +479,6 @@
             return skeleton;
         }
         
-        function updateHandVelocity(landmarks, handedness) {
-            const indexTip = landmarks[8];
-            const pos = getHandPosition3D(indexTip);
-            
-            const history = handPositionHistory[handedness];
-            history.push({ pos: pos.clone(), time: performance.now() });
-            
-            if (history.length > HISTORY_SIZE) {
-                history.shift();
-            }
-        }
-        
-        function getHandVelocity(handedness) {
-            const history = handPositionHistory[handedness];
-            if (history.length < 2) return new THREE.Vector3(0, 0, 0);
-            
-            const current = history[history.length - 1];
-            const old = history[0];
-            const timeDiff = (current.time - old.time) / 1000;
-            
-            if (timeDiff < 0.001) return new THREE.Vector3(0, 0, 0);
-            
-            const velocity = new THREE.Vector3().subVectors(current.pos, old.pos);
-            velocity.divideScalar(timeDiff);
-            
-            return velocity;
-        }
-        
         function checkGestures(landmarks, handedness) {
             const thumbTip = landmarks[4];
             const indexTip = landmarks[8];
@@ -616,7 +496,6 @@
                 isPinching[handedness] = true;
                 
                 const indicator = document.getElementById('gestureIndicator');
-                // Зеркалим координаты для индикатора (как видео)
                 const x = (1 - thumbTip.x) * overlayCanvas.width;
                 const y = thumbTip.y * overlayCanvas.height;
                 indicator.style.left = (x - 50) + 'px';
@@ -629,39 +508,34 @@
                     
                     if (pinchCount === 2) {
                         const menuPos = getHandPosition3D(thumbTip);
-                        createQuest3Menu(menuPos);
+                        createMenu(menuPos);
                         pinchCount = 0;
                         updateStatus('✅ Меню открыто');
                     }
                     
-                    setTimeout(() => {
-                        if (pinchCount === 1) pinchCount = 0;
-                    }, 800);
+                    setTimeout(() => { if (pinchCount === 1) pinchCount = 0; }, 800);
                 }
                 
                 if (!isMenuOpen && !grabbedObject) {
-                    tryGrabObject(indexTip, handedness);
+                    tryGrabObject(indexTip);
                 }
                 
             } else if (distance >= threshold && isPinching[handedness]) {
                 isPinching[handedness] = false;
                 document.getElementById('gestureIndicator').classList.remove('active');
                 
-                if (grabbedObject) {
-                    releaseObject(handedness);
-                }
+                if (grabbedObject) releaseObject();
             }
         }
         
         function getHandPosition3D(landmark) {
-            // Зеркалим X для фронтальной камеры
             const x = (0.5 - landmark.x) * 4;
             const y = (0.5 - landmark.y) * 4;
             const z = -landmark.z * 3;
             return new THREE.Vector3(x, y + 2, z);
         }
         
-        function tryGrabObject(indexTip, handedness) {
+        function tryGrabObject(indexTip) {
             const handPos = getHandPosition3D(indexTip);
             
             let closest = null;
@@ -674,9 +548,8 @@
                     obj.body.position.z
                 );
                 const dist = handPos.distanceTo(objPos);
-                const grabRadius = obj.userData.size * 1.5;
                 
-                if (dist < grabRadius && dist < closestDist) {
+                if (dist < obj.userData.size * 1.5 && dist < closestDist) {
                     closestDist = dist;
                     closest = obj;
                 }
@@ -687,32 +560,18 @@
                 grabbedObject.userData.grabbed = true;
                 grabbedObject.body.type = CANNON.Body.KINEMATIC;
                 grabbedObject.body.velocity.set(0, 0, 0);
-                grabbedObject.body.angularVelocity.set(0, 0, 0);
-                
                 grabbedObject.mesh.material.emissive = new THREE.Color(0x444444);
-                
                 updateStatus(`🎯 Захвачен: ${closest.userData.name}`);
             }
         }
         
-        function releaseObject(handedness) {
+        function releaseObject() {
             if (!grabbedObject) return;
             
-            const velocity = getHandVelocity(handedness);
-            const throwMultiplier = 1.5;
-            
             grabbedObject.body.type = CANNON.Body.DYNAMIC;
-            grabbedObject.body.velocity.set(
-                velocity.x * throwMultiplier,
-                velocity.y * throwMultiplier,
-                velocity.z * throwMultiplier
-            );
-            
             grabbedObject.mesh.material.emissive = new THREE.Color(0x000000);
             grabbedObject.userData.grabbed = false;
             grabbedObject = null;
-            
-            updateStatus('💨 Бросок!');
         }
         
         function interactWithObjects(landmarks, handedness) {
@@ -722,7 +581,6 @@
                 
                 grabbedObject.body.position.set(handPos.x, handPos.y, handPos.z);
                 grabbedObject.body.velocity.set(0, 0, 0);
-                grabbedObject.body.angularVelocity.set(0, 0, 0);
                 return;
             }
             
@@ -739,19 +597,17 @@
                         obj.body.position.z
                     );
                     const dist = handPos.distanceTo(objPos);
-                    const pushRadius = obj.userData.size + 0.15;
                     
-                    if (dist < pushRadius) {
+                    if (dist < obj.userData.size + 0.15) {
                         const direction = new THREE.Vector3()
                             .subVectors(objPos, handPos)
                             .normalize();
                         
-                        const pushForce = 5;
                         obj.body.applyImpulse(
                             new CANNON.Vec3(
-                                direction.x * pushForce,
-                                direction.y * pushForce + 1,
-                                direction.z * pushForce
+                                direction.x * 5,
+                                direction.y * 5 + 1,
+                                direction.z * 5
                             ),
                             obj.body.position
                         );
@@ -760,7 +616,7 @@
             }
         }
         
-        function createQuest3Menu(position) {
+        function createMenu(position) {
             if (radialMenu) scene.remove(radialMenu);
             
             radialMenu = new THREE.Group();
@@ -830,7 +686,6 @@
                 
                 const buttonWorldPos = button.position.clone().add(radialMenu.position);
                 const distance = handPos.distanceTo(buttonWorldPos);
-                
                 const hoverRadius = button.userData.isCloseButton ? 0.25 : 0.3;
                 
                 if (distance < hoverRadius) {
@@ -852,7 +707,7 @@
                 scene.remove(radialMenu);
                 radialMenu = null;
                 isMenuOpen = false;
-                updateStatus('❌ Меню закрыто');
+                updateStatus(' Меню закрыто');
             } else if (button.userData.isSpawnButton) {
                 spawnItem(button.userData.item);
                 scene.remove(radialMenu);
@@ -892,10 +747,9 @@
             });
             body.addShape(shape);
             body.linearDamping = 0.2;
-            body.angularDamping = 0.3;
             world.addBody(body);
             
-            const obj = {
+            physicsObjects.push({
                 mesh: mesh,
                 body: body,
                 userData: {
@@ -904,9 +758,7 @@
                     type: itemData.type,
                     grabbed: false
                 }
-            };
-            
-            physicsObjects.push(obj);
+            });
             
             if (physicsObjects.length > 30) {
                 const old = physicsObjects.shift();
@@ -917,14 +769,6 @@
         
         function updateStatus(text) {
             document.getElementById('status').textContent = text;
-        }
-        
-        function onWindowResize() {
-            camera.aspect = window.innerWidth / window.innerHeight;
-            camera.updateProjectionMatrix();
-            renderer.setSize(window.innerWidth, window.innerHeight);
-            overlayCanvas.width = window.innerWidth;
-            overlayCanvas.height = window.innerHeight;
         }
         
         function animate() {
