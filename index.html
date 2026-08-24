@@ -86,6 +86,26 @@
             50% { transform: translate(-50%, -50%) scale(1.3); }
         }
         
+        #pinchCounter {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -150%);
+            background: rgba(0, 212, 255, 0.9);
+            color: white;
+            padding: 10px 20px;
+            border-radius: 20px;
+            font-size: 18px;
+            font-weight: bold;
+            opacity: 0;
+            transition: opacity 0.3s;
+            z-index: 1001;
+        }
+        
+        #pinchCounter.visible {
+            opacity: 1;
+        }
+        
         #instructions {
             position: fixed; bottom: 20px; left: 50%;
             transform: translateX(-50%);
@@ -106,18 +126,34 @@
             font-size: 12px;
             z-index: 1000;
             font-family: monospace;
+            max-width: 300px;
         }
         
-        .hand-label {
+        #error {
             position: fixed;
-            background: rgba(0, 212, 255, 0.9);
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: rgba(255, 0, 0, 0.9);
             color: white;
-            padding: 5px 10px;
+            padding: 30px;
+            border-radius: 10px;
+            font-size: 16px;
+            text-align: center;
+            z-index: 10001;
+            display: none;
+            max-width: 80%;
+        }
+        
+        #error button {
+            margin-top: 20px;
+            padding: 10px 30px;
+            background: white;
+            color: red;
+            border: none;
             border-radius: 5px;
-            font-size: 12px;
-            font-weight: bold;
-            pointer-events: none;
-            z-index: 998;
+            font-size: 16px;
+            cursor: pointer;
         }
     </style>
 </head>
@@ -129,13 +165,20 @@
         <p style="margin-top: 10px; font-size: 12px; color: #aaa;">Разрешите доступ к камере</p>
     </div>
     
+    <div id="error">
+        <h2>❌ Ошибка камеры</h2>
+        <p id="errorMessage">Не удалось получить доступ к камере</p>
+        <button onclick="location.reload()">Попробовать снова</button>
+    </div>
+    
     <video id="videoInput" autoplay playsinline></video>
     <canvas id="handTrackingOverlay"></canvas>
     
     <div id="gestureIndicator"></div>
+    <div id="pinchCounter">1/2</div>
     <div id="status">Инициализация...</div>
     <div id="instructions">
-        🖐 Покажи руку камере | Соедини большой и указательный палец для жеста "щипок" | Перетаскивай предметы
+        🖐 Покажи руку камере | Сделай ДВА щипка подряд для открытия меню | Соедини большой и указательный палец
     </div>
     
     <canvas id="gameCanvas"></canvas>
@@ -151,11 +194,16 @@
         let scene, camera, renderer, controls;
         let world;
         let objects = [];
-        let raycaster, mouse;
         let isPinching = false;
         let selectedObject = null;
         let radialMenu = null;
         let isMenuOpen = false;
+        
+        // Система двойного щипка
+        let pinchCount = 0;
+        let lastPinchTime = 0;
+        const DOUBLE_PINCH_TIMEOUT = 1000; // 1 секунда между щипками
+        const PINCH_COOLDOWN = 500; // 0.5 секунда между щипками
         
         // Трекинг рук
         let hands;
@@ -165,13 +213,12 @@
         let handSkeletons = { left: null, right: null };
         let handData = { left: null, right: null };
         
-        // Соединения между суставами (для создания костей)
         const HAND_CONNECTIONS = [
-            [0, 1], [1, 2], [2, 3], [3, 4],       // Большой палец
-            [0, 5], [5, 6], [6, 7], [7, 8],       // Указательный
-            [0, 9], [9, 10], [10, 11], [11, 12],  // Средний
-            [0, 13], [13, 14], [14, 15], [15, 16],// Безымянный
-            [0, 17], [17, 18], [18, 19], [19, 20] // Мизинец
+            [0, 1], [1, 2], [2, 3], [3, 4],
+            [0, 5], [5, 6], [6, 7], [7, 8],
+            [0, 9], [9, 10], [10, 11], [11, 12],
+            [0, 13], [13, 14], [14, 15], [15, 16],
+            [0, 17], [17, 18], [18, 19], [19, 20]
         ];
         
         const categories = {
@@ -191,7 +238,6 @@
         // ==================== ИНИЦИАЛИЗАЦИЯ ====================
         async function init() {
             try {
-                // Three.js сцена
                 scene = new THREE.Scene();
                 scene.background = new THREE.Color(0x87ceeb);
                 
@@ -208,28 +254,28 @@
                 controls.dampingFactor = 0.05;
                 controls.maxPolarAngle = Math.PI / 2 - 0.1;
                 
-                // Физика
                 world = new CANNON.World();
                 world.gravity.set(0, -9.82, 0);
-                
-                raycaster = new THREE.Raycaster();
-                mouse = new THREE.Vector2();
                 
                 createRoom();
                 setupLighting();
                 
-                // Инициализация трекинга рук
                 await initHandTracking();
                 
                 document.getElementById('loading').style.display = 'none';
-                updateStatus('✅ Готово! Покажи руку камере');
+                updateStatus('✅ Готово! Сделай ДВА щипка для меню');
                 
                 animate();
             } catch (error) {
                 console.error('Ошибка:', error);
-                document.getElementById('loading').innerHTML = 
-                    '<h1>Ошибка</h1><p style="color: #ff6b6b;">' + error.message + '</p>';
+                showError(error.message);
             }
+        }
+        
+        function showError(message) {
+            document.getElementById('loading').style.display = 'none';
+            document.getElementById('errorMessage').textContent = message;
+            document.getElementById('error').style.display = 'block';
         }
         
         // ==================== ТРЕКИНГ РУК ====================
@@ -241,7 +287,6 @@
             canvasElement.width = 240;
             canvasElement.height = 180;
             
-            // Инициализация MediaPipe Hands
             hands = new Hands({
                 locateFile: (file) => {
                     return `https://cdn.jsdelivr.net/npm/@mediapipe/hands@0.4.1646424915/${file}`;
@@ -257,24 +302,40 @@
             
             hands.onResults(onHandResults);
             
-            // Запуск камеры
-            const stream = await navigator.mediaDevices.getUserMedia({ 
-                video: { 
-                    width: 640, 
-                    height: 480,
-                    facingMode: 'user'
-                } 
-            });
+            // Пробуем разные конфигурации камеры
+            let stream = null;
+            const constraints = [
+                { video: { width: 640, height: 480, facingMode: 'user' } },
+                { video: { width: 640, height: 480 } },
+                { video: { facingMode: 'user' } },
+                { video: true }
+            ];
+            
+            for (const constraint of constraints) {
+                try {
+                    stream = await navigator.mediaDevices.getUserMedia(constraint);
+                    break;
+                } catch (e) {
+                    console.warn('Конфигурация не сработала:', constraint, e);
+                    continue;
+                }
+            }
+            
+            if (!stream) {
+                throw new Error('Не удалось получить доступ к камере. Проверьте разрешения или попробуйте другой браузер.');
+            }
+            
             videoElement.srcObject = stream;
             
-            await new Promise(resolve => {
+            await new Promise((resolve, reject) => {
                 videoElement.onloadedmetadata = () => {
-                    videoElement.play();
-                    resolve();
+                    videoElement.play()
+                        .then(resolve)
+                        .catch(reject);
                 };
+                videoElement.onerror = () => reject(new Error('Ошибка загрузки видео'));
             });
             
-            // Запуск обработки кадров
             const camera = new Camera(videoElement, {
                 onFrame: async () => {
                     await hands.send({ image: videoElement });
@@ -288,31 +349,18 @@
         }
         
         function onHandResults(results) {
-            // Очистка canvas
             canvasCtx.save();
             canvasCtx.clearRect(0, 0, canvasElement.width, canvasElement.height);
-            
-            // Зеркальное отображение
             canvasCtx.scale(-1, 1);
             canvasCtx.translate(-canvasElement.width, 0);
-            
-            // Рисуем оригинальное видео
             canvasCtx.drawImage(results.image, 0, 0, canvasElement.width, canvasElement.height);
             
             if (results.multiHandLandmarks && results.multiHandLandmarks.length > 0) {
                 results.multiHandLandmarks.forEach((landmarks, index) => {
                     const handedness = results.multiHandedness[index].label;
-                    
-                    // Сохраняем данные руки
                     handData[handedness.toLowerCase()] = landmarks;
-                    
-                    // Рисуем скелет на видео
                     drawHandSkeleton(landmarks, handedness);
-                    
-                    // Обновляем 3D скелет
                     updateHandSkeleton3D(landmarks, handedness);
-                    
-                    // Проверяем жест щипка
                     checkPinchGesture(landmarks, handedness);
                 });
             } else {
@@ -326,7 +374,6 @@
         function drawHandSkeleton(landmarks, handedness) {
             const color = handedness === 'Left' ? '#00ff00' : '#ff00ff';
             
-            // Рисуем соединения (кости)
             canvasCtx.strokeStyle = color;
             canvasCtx.lineWidth = 3;
             
@@ -340,12 +387,11 @@
                 canvasCtx.stroke();
             });
             
-            // Рисуем суставы
             landmarks.forEach((landmark, index) => {
                 const x = landmark.x * canvasElement.width;
                 const y = landmark.y * canvasElement.height;
                 
-                canvasCtx.fillStyle = index === 4 || index === 8 ? '#ffff00' : color; // Кончики пальцев желтые
+                canvasCtx.fillStyle = index === 4 || index === 8 ? '#ffff00' : color;
                 canvasCtx.beginPath();
                 canvasCtx.arc(x, y, 5, 0, 2 * Math.PI);
                 canvasCtx.fill();
@@ -359,17 +405,14 @@
         function updateHandSkeleton3D(landmarks, handedness) {
             const handKey = handedness.toLowerCase();
             
-            // Создаем скелет если его нет
             if (!handSkeletons[handKey]) {
                 handSkeletons[handKey] = createHandSkeleton3D(handKey);
             }
             
             const skeleton = handSkeletons[handKey];
             
-            // Обновляем позиции суставов
             landmarks.forEach((landmark, index) => {
-                // Преобразуем координаты из normalized [0,1] в 3D пространство
-                const x = (landmark.x - 0.5) * 3; // Зеркалим и масштабируем
+                const x = (landmark.x - 0.5) * 3;
                 const y = -(landmark.y - 0.5) * 3;
                 const z = -landmark.z * 2;
                 
@@ -378,7 +421,6 @@
                 }
             });
             
-            // Обновляем кости
             HAND_CONNECTIONS.forEach(([startIdx, endIdx], connIdx) => {
                 if (skeleton.bones[connIdx]) {
                     const startJoint = skeleton.joints[startIdx];
@@ -387,16 +429,13 @@
                     const start = startJoint.position;
                     const end = endJoint.position;
                     
-                    // Вычисляем направление и длину
                     const direction = new THREE.Vector3().subVectors(end, start);
                     const length = direction.length();
                     const midpoint = new THREE.Vector3().addVectors(start, end).multiplyScalar(0.5);
                     
-                    // Обновляем кость
                     skeleton.bones[connIdx].position.copy(midpoint);
                     skeleton.bones[connIdx].scale.y = length;
                     
-                    // Поворачиваем кость вдоль направления
                     const axis = new THREE.Vector3(0, 1, 0);
                     const quaternion = new THREE.Quaternion().setFromUnitVectors(axis, direction.normalize());
                     skeleton.bones[connIdx].quaternion.copy(quaternion);
@@ -408,7 +447,6 @@
             const skeleton = { joints: [], bones: [] };
             const color = handKey === 'left' ? 0x00ff00 : 0xff00ff;
             
-            // Создаем суставы (сферы)
             for (let i = 0; i < 21; i++) {
                 const size = (i === 4 || i === 8 || i === 12 || i === 16 || i === 20) ? 0.04 : 0.03;
                 const geometry = new THREE.SphereGeometry(size, 16, 16);
@@ -425,7 +463,6 @@
                 skeleton.joints.push(joint);
             }
             
-            // Создаем кости (цилиндры)
             HAND_CONNECTIONS.forEach(() => {
                 const geometry = new THREE.CylinderGeometry(0.015, 0.015, 1, 8);
                 const material = new THREE.MeshStandardMaterial({ 
@@ -455,65 +492,53 @@
             );
             
             const threshold = 0.05;
+            const now = Date.now();
             
             if (distance < threshold && !isPinching) {
-                isPinching = true;
-                document.getElementById('gestureIndicator').classList.add('active');
-                updateStatus('🤏 Щипок обнаружен! (' + handedness + ')');
+                // Проверяем кулдаун
+                if (now - lastPinchTime < PINCH_COOLDOWN) {
+                    return;
+                }
                 
-                // Пытаемся взять объект
-                tryGrabObject(thumbTip, handedness);
+                isPinching = true;
+                lastPinchTime = now;
+                
+                // Считаем щипки
+                pinchCount++;
+                
+                // Показываем счетчик
+                const counter = document.getElementById('pinchCounter');
+                counter.textContent = `${pinchCount}/2`;
+                counter.classList.add('visible');
+                
+                document.getElementById('gestureIndicator').classList.add('active');
+                updateStatus(`🤏 Щипок #${pinchCount}! (${handedness})`);
+                
+                // Если это второй щипок в течение времени
+                if (pinchCount === 2) {
+                    updateStatus('✅ ДВОЙНОЙ ЩИПОК! Открываю меню...');
+                    setTimeout(() => {
+                        const x = (thumbTip.x - 0.5) * 3;
+                        const y = -(thumbTip.y - 0.5) * 3;
+                        const z = -thumbTip.z * 2;
+                        createRadialMenu(new THREE.Vector3(x, y + 2, z));
+                        pinchCount = 0;
+                        counter.classList.remove('visible');
+                    }, 300);
+                }
+                
+                // Сбрасываем счетчик если прошло слишком много времени
+                setTimeout(() => {
+                    if (pinchCount === 1) {
+                        pinchCount = 0;
+                        document.getElementById('pinchCounter').classList.remove('visible');
+                        updateStatus('✋ Сброс счетчика');
+                    }
+                }, DOUBLE_PINCH_TIMEOUT);
+                
             } else if (distance >= threshold && isPinching) {
                 isPinching = false;
                 document.getElementById('gestureIndicator').classList.remove('active');
-                updateStatus('✋ Рука открыта');
-                
-                // Отпускаем объект
-                if (selectedObject) {
-                    selectedObject.material.emissive = new THREE.Color(0x000000);
-                    selectedObject = null;
-                }
-            }
-            
-            // Если держим объект, перемещаем его
-            if (isPinching && selectedObject) {
-                const x = (thumbTip.x - 0.5) * 3;
-                const y = -(thumbTip.y - 0.5) * 3;
-                const z = -thumbTip.z * 2;
-                
-                const body = objects.find(obj => obj.mesh === selectedObject).body;
-                body.position.set(x, y + 2, z);
-                body.velocity.set(0, 0, 0);
-                body.angularVelocity.set(0, 0, 0);
-            }
-        }
-        
-        function tryGrabObject(thumbTip, handedness) {
-            const x = (thumbTip.x - 0.5) * 3;
-            const y = -(thumbTip.y - 0.5) * 3;
-            const z = -thumbTip.z * 2;
-            
-            const grabPosition = new THREE.Vector3(x, y + 2, z);
-            
-            // Ищем ближайший объект
-            let closestObject = null;
-            let closestDistance = Infinity;
-            
-            objects.forEach(obj => {
-                const distance = grabPosition.distanceTo(obj.mesh.position);
-                if (distance < 0.3 && distance < closestDistance) {
-                    closestDistance = distance;
-                    closestObject = obj.mesh;
-                }
-            });
-            
-            if (closestObject) {
-                selectedObject = closestObject;
-                selectedObject.material.emissive = new THREE.Color(0x444444);
-                updateStatus('🎯 Объект захвачен!');
-            } else if (!isMenuOpen) {
-                // Открываем меню
-                createRadialMenu(grabPosition);
             }
         }
         
@@ -622,7 +647,7 @@
             
             scene.add(radialMenu);
             isMenuOpen = true;
-            updateStatus('📋 Меню открыто');
+            updateStatus('📋 Меню открыто! Сделай щипок на предмете');
         }
         
         function updateStatus(text) {
