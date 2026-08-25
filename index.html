@@ -3,34 +3,23 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-  <title>❄️ Детальный трекинг рук 🎅</title>
+  <title>Hand Tracking</title>
   <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js" crossorigin="anonymous"></script>
-  <script src="https://cdn.jsdelivr.net/npm/@mediapipe/control_utils/control_utils.js" crossorigin="anonymous"></script>
   <script src="https://cdn.jsdelivr.net/npm/@mediapipe/drawing_utils/drawing_utils.js" crossorigin="anonymous"></script>
   <script src="https://cdn.jsdelivr.net/npm/@mediapipe/hands/hands.js" crossorigin="anonymous"></script>
   <style>
-    * {
-      margin: 0;
-      padding: 0;
-      box-sizing: border-box;
-    }
+    * { margin: 0; padding: 0; box-sizing: border-box; }
     html, body {
       width: 100%;
       height: 100%;
       overflow: hidden;
       background: #000;
-      font-family: 'Segoe UI', system-ui, sans-serif;
-      color: #e0f7fa;
     }
-
-    /* Камера на весь экран */
     #container {
       position: fixed;
       inset: 0;
       width: 100vw;
       height: 100vh;
-      overflow: hidden;
-      background: #000;
     }
     video, canvas {
       position: absolute;
@@ -39,162 +28,26 @@
       width: 100%;
       height: 100%;
       object-fit: cover;
-      transform: scaleX(-1); /* зеркало */
+      transform: scaleX(-1);
     }
     video { z-index: 1; }
     canvas {
       z-index: 2;
       pointer-events: none;
     }
-
-    /* UI поверх камеры */
-    .ui-overlay {
-      position: fixed;
-      z-index: 20;
-      pointer-events: none;
-    }
-    .ui-overlay * {
-      pointer-events: auto;
-    }
-
-    .top-bar {
-      top: 0;
-      left: 0;
-      right: 0;
-      padding: 14px 20px;
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      background: linear-gradient(to bottom, rgba(0,0,0,0.65), transparent);
-    }
-    .top-bar h1 {
-      font-size: 1.15rem;
-      text-shadow: 0 0 10px #00e5ff;
-      letter-spacing: 0.5px;
-    }
-    .fps {
-      background: rgba(0,0,0,0.55);
-      padding: 5px 12px;
-      border-radius: 10px;
-      font-size: 0.85rem;
-      color: #80deea;
-    }
-
-    .bottom-bar {
-      bottom: 0;
-      left: 0;
-      right: 0;
-      padding: 16px 20px 24px;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      gap: 12px;
-      background: linear-gradient(to top, rgba(0,0,0,0.7), transparent);
-    }
-    #status {
-      padding: 8px 18px;
-      background: rgba(0, 30, 50, 0.75);
-      border-radius: 20px;
-      font-size: 0.9rem;
-      border: 1px solid rgba(0, 229, 255, 0.35);
-      text-align: center;
-      max-width: 90vw;
-    }
-    .controls {
-      display: flex;
-      gap: 12px;
-      flex-wrap: wrap;
-      justify-content: center;
-    }
-    button {
-      background: linear-gradient(135deg, #00bcd4, #0097a7);
-      border: none;
-      color: white;
-      padding: 12px 26px;
-      border-radius: 28px;
-      font-size: 1rem;
-      cursor: pointer;
-      box-shadow: 0 4px 18px rgba(0, 188, 212, 0.45);
-      transition: transform 0.15s, box-shadow 0.15s;
-    }
-    button:hover {
-      transform: translateY(-2px);
-      box-shadow: 0 6px 22px rgba(0, 188, 212, 0.6);
-    }
-    button:active {
-      transform: translateY(0);
-    }
-
-    .snowflake {
-      position: fixed;
-      top: -20px;
-      color: #fff;
-      font-size: 1.2rem;
-      animation: fall linear infinite;
-      pointer-events: none;
-      z-index: 5;
-      opacity: 0.55;
-    }
-    @keyframes fall {
-      to { transform: translateY(110vh) rotate(360deg); }
-    }
   </style>
 </head>
 <body>
-  <!-- Камера на весь экран -->
   <div id="container">
     <video id="video" playsinline autoplay muted></video>
     <canvas id="canvas"></canvas>
   </div>
 
-  <!-- Верхняя панель -->
-  <div class="ui-overlay top-bar">
-    <h1>❄️ Детальный трекинг рук 🎅</h1>
-    <div class="fps" id="fps">FPS: --</div>
-  </div>
-
-  <!-- Нижняя панель -->
-  <div class="ui-overlay bottom-bar">
-    <div id="status">❄️ Загрузка модели MediaPipe Hands...</div>
-    <div class="controls">
-      <button id="btnStart">🎥 Включить камеру</button>
-      <button id="btnStop" style="display:none">⏹ Остановить</button>
-    </div>
-  </div>
-
   <script>
-    // ===== Новогодние снежинки =====
-    function createSnowflakes() {
-      const symbols = ['❄', '❅', '❆', '✦', '✧'];
-      for (let i = 0; i < 22; i++) {
-        const flake = document.createElement('div');
-        flake.className = 'snowflake';
-        flake.textContent = symbols[Math.floor(Math.random() * symbols.length)];
-        flake.style.left = Math.random() * 100 + 'vw';
-        flake.style.animationDuration = (6 + Math.random() * 11) + 's';
-        flake.style.animationDelay = Math.random() * 6 + 's';
-        flake.style.fontSize = (0.7 + Math.random() * 1.0) + 'rem';
-        document.body.appendChild(flake);
-      }
-    }
-    createSnowflakes();
-
-    // ===== Основные элементы =====
     const video = document.getElementById('video');
     const canvas = document.getElementById('canvas');
     const ctx = canvas.getContext('2d');
-    const statusEl = document.getElementById('status');
-    const fpsEl = document.getElementById('fps');
-    const btnStart = document.getElementById('btnStart');
-    const btnStop = document.getElementById('btnStop');
 
-    let camera = null;
-    let hands = null;
-    let lastFrameTime = performance.now();
-    let frameCount = 0;
-    let fps = 0;
-
-    // ===== Соединения скелета =====
     const HAND_CONNECTIONS = [
       [0, 1], [1, 2], [2, 3], [3, 4],
       [0, 5], [5, 6], [6, 7], [7, 8],
@@ -213,34 +66,31 @@
       palm:   '#A8DADC'
     };
 
-    function getConnectionColor(startIdx, endIdx) {
-      if (startIdx <= 4 || endIdx <= 4) return FINGER_COLORS.thumb;
-      if ((startIdx >= 5 && startIdx <= 8) || (endIdx >= 5 && endIdx <= 8)) return FINGER_COLORS.index;
-      if ((startIdx >= 9 && startIdx <= 12) || (endIdx >= 9 && endIdx <= 12)) return FINGER_COLORS.middle;
-      if ((startIdx >= 13 && startIdx <= 16) || (endIdx >= 13 && endIdx <= 16)) return FINGER_COLORS.ring;
-      if ((startIdx >= 17 && startIdx <= 20) || (endIdx >= 17 && endIdx <= 20)) return FINGER_COLORS.pinky;
+    function getConnectionColor(i, j) {
+      if (i <= 4 || j <= 4) return FINGER_COLORS.thumb;
+      if ((i >= 5 && i <= 8) || (j >= 5 && j <= 8)) return FINGER_COLORS.index;
+      if ((i >= 9 && i <= 12) || (j >= 9 && j <= 12)) return FINGER_COLORS.middle;
+      if ((i >= 13 && i <= 16) || (j >= 13 && j <= 16)) return FINGER_COLORS.ring;
+      if ((i >= 17 && i <= 20) || (j >= 17 && j <= 20)) return FINGER_COLORS.pinky;
       return FINGER_COLORS.palm;
     }
 
-    // ===== Рисование детального скелета =====
-    function drawDetailedSkeleton(landmarks, handedness) {
+    function drawSkeleton(landmarks) {
       const w = canvas.width;
       const h = canvas.height;
 
-      // Свечение ладони
-      ctx.save();
-      const palmX = landmarks[0].x * w;
-      const palmY = landmarks[0].y * h;
-      const glow = ctx.createRadialGradient(palmX, palmY, 5, palmX, palmY, 90);
-      glow.addColorStop(0, 'rgba(0, 229, 255, 0.28)');
+      // Glow under palm
+      const px = landmarks[0].x * w;
+      const py = landmarks[0].y * h;
+      const glow = ctx.createRadialGradient(px, py, 4, px, py, 80);
+      glow.addColorStop(0, 'rgba(0, 229, 255, 0.25)');
       glow.addColorStop(1, 'rgba(0, 229, 255, 0)');
       ctx.fillStyle = glow;
       ctx.beginPath();
-      ctx.arc(palmX, palmY, 90, 0, Math.PI * 2);
+      ctx.arc(px, py, 80, 0, Math.PI * 2);
       ctx.fill();
-      ctx.restore();
 
-      // Кости
+      // Bones
       HAND_CONNECTIONS.forEach(([i, j]) => {
         const x1 = landmarks[i].x * w;
         const y1 = landmarks[i].y * h;
@@ -251,8 +101,8 @@
         ctx.beginPath();
         ctx.moveTo(x1, y1);
         ctx.lineTo(x2, y2);
-        ctx.strokeStyle = 'rgba(0,0,0,0.55)';
-        ctx.lineWidth = 9;
+        ctx.strokeStyle = 'rgba(0,0,0,0.5)';
+        ctx.lineWidth = 8;
         ctx.lineCap = 'round';
         ctx.stroke();
 
@@ -260,7 +110,7 @@
         ctx.moveTo(x1, y1);
         ctx.lineTo(x2, y2);
         ctx.strokeStyle = color;
-        ctx.lineWidth = 5;
+        ctx.lineWidth = 4.5;
         ctx.lineCap = 'round';
         ctx.stroke();
 
@@ -268,61 +118,40 @@
         ctx.moveTo(x1, y1);
         ctx.lineTo(x2, y2);
         ctx.strokeStyle = 'rgba(255,255,255,0.4)';
-        ctx.lineWidth = 1.8;
+        ctx.lineWidth = 1.6;
         ctx.lineCap = 'round';
         ctx.stroke();
       });
 
-      // Суставы
+      // Joints
       landmarks.forEach((lm, idx) => {
         const x = lm.x * w;
         const y = lm.y * h;
-        let radius = 5.5;
+        let r = 5;
         let color = '#FFFFFF';
 
-        if (idx === 0) { radius = 10; color = '#00E5FF'; }
-        else if ([4, 8, 12, 16, 20].includes(idx)) { radius = 7.5; color = '#FFD700'; }
-        else if ([5, 9, 13, 17].includes(idx)) { radius = 6.5; color = '#80DEEA'; }
+        if (idx === 0) { r = 9; color = '#00E5FF'; }
+        else if ([4, 8, 12, 16, 20].includes(idx)) { r = 7; color = '#FFD700'; }
+        else if ([5, 9, 13, 17].includes(idx)) { r = 6; color = '#80DEEA'; }
 
         ctx.beginPath();
-        ctx.arc(x, y, radius + 3, 0, Math.PI * 2);
-        ctx.fillStyle = 'rgba(0,0,0,0.4)';
+        ctx.arc(x, y, r + 2.5, 0, Math.PI * 2);
+        ctx.fillStyle = 'rgba(0,0,0,0.35)';
         ctx.fill();
 
         ctx.beginPath();
-        ctx.arc(x, y, radius, 0, Math.PI * 2);
+        ctx.arc(x, y, r, 0, Math.PI * 2);
         ctx.fillStyle = color;
         ctx.fill();
 
         ctx.beginPath();
-        ctx.arc(x - radius * 0.3, y - radius * 0.3, radius * 0.35, 0, Math.PI * 2);
-        ctx.fillStyle = 'rgba(255,255,255,0.7)';
+        ctx.arc(x - r * 0.28, y - r * 0.28, r * 0.32, 0, Math.PI * 2);
+        ctx.fillStyle = 'rgba(255,255,255,0.65)';
         ctx.fill();
       });
-
-      // Подпись руки
-      if (handedness && handedness.length > 0) {
-        const label = handedness[0].categoryName === 'Left' ? 'ЛЕВАЯ 🧤' : 'ПРАВАЯ 🧤';
-        const conf = Math.round(handedness[0].score * 100);
-        ctx.font = 'bold 17px Segoe UI, system-ui, sans-serif';
-        ctx.fillStyle = 'rgba(0,0,0,0.55)';
-        ctx.fillText(label + ` ${conf}%`, landmarks[0].x * w - 42, landmarks[0].y * h - 30);
-        ctx.fillStyle = '#E0F7FA';
-        ctx.fillText(label + ` ${conf}%`, landmarks[0].x * w - 44, landmarks[0].y * h - 32);
-      }
     }
 
     function onResults(results) {
-      frameCount++;
-      const now = performance.now();
-      if (now - lastFrameTime >= 1000) {
-        fps = frameCount;
-        frameCount = 0;
-        lastFrameTime = now;
-        fpsEl.textContent = `FPS: ${fps}`;
-      }
-
-      // Подгоняем canvas под реальное разрешение видео
       if (canvas.width !== video.videoWidth || canvas.height !== video.videoHeight) {
         canvas.width = video.videoWidth || window.innerWidth;
         canvas.height = video.videoHeight || window.innerHeight;
@@ -333,22 +162,16 @@
       ctx.scale(-1, 1);
       ctx.translate(-canvas.width, 0);
 
-      if (results.multiHandLandmarks && results.multiHandLandmarks.length > 0) {
-        statusEl.textContent = `🎅 Найдено рук: ${results.multiHandLandmarks.length}  •  Трекинг активен ❄️`;
-        for (let i = 0; i < results.multiHandLandmarks.length; i++) {
-          drawDetailedSkeleton(
-            results.multiHandLandmarks[i],
-            results.multiHandedness ? [results.multiHandedness[i]] : null
-          );
+      if (results.multiHandLandmarks) {
+        for (const landmarks of results.multiHandLandmarks) {
+          drawSkeleton(landmarks);
         }
-      } else {
-        statusEl.textContent = '❄️ Покажи руки камере... жду скелет 🧤';
       }
       ctx.restore();
     }
 
-    async function initHands() {
-      hands = new Hands({
+    async function start() {
+      const hands = new Hands({
         locateFile: (file) => `https://cdn.jsdelivr.net/npm/@mediapipe/hands/${file}`
       });
       hands.setOptions({
@@ -358,73 +181,29 @@
         minTrackingConfidence: 0.6
       });
       hands.onResults(onResults);
-      statusEl.textContent = '❄️ Модель загружена! Нажми «Включить камеру» 🎅';
+
+      const stream = await navigator.mediaDevices.getUserMedia({
+        video: {
+          facingMode: 'user',
+          width: { ideal: 1920 },
+          height: { ideal: 1080 }
+        },
+        audio: false
+      });
+      video.srcObject = stream;
+      await video.play();
+
+      const camera = new Camera(video, {
+        onFrame: async () => {
+          await hands.send({ image: video });
+        },
+        width: 1920,
+        height: 1080
+      });
+      camera.start();
     }
 
-    async function startCamera() {
-      try {
-        statusEl.textContent = '❄️ Запрашиваю доступ к камере...';
-
-        const stream = await navigator.mediaDevices.getUserMedia({
-          video: {
-            facingMode: 'user',
-            width: { ideal: 1920 },
-            height: { ideal: 1080 }
-          },
-          audio: false
-        });
-
-        video.srcObject = stream;
-        await video.play();
-
-        camera = new Camera(video, {
-          onFrame: async () => {
-            if (hands) await hands.send({ image: video });
-          },
-          width: 1920,
-          height: 1080
-        });
-        camera.start();
-
-        btnStart.style.display = 'none';
-        btnStop.style.display = 'inline-block';
-        statusEl.textContent = '🎅 Камера на весь экран! Покажи руки ❄️';
-      } catch (err) {
-        console.error(err);
-        statusEl.textContent = '❌ Ошибка камеры: ' + err.message;
-      }
-    }
-
-    function stopCamera() {
-      if (camera) {
-        camera.stop();
-        camera = null;
-      }
-      if (video.srcObject) {
-        video.srcObject.getTracks().forEach(t => t.stop());
-        video.srcObject = null;
-      }
-      ctx.clearRect(0, 0, canvas.width, canvas.height);
-      btnStart.style.display = 'inline-block';
-      btnStop.style.display = 'none';
-      statusEl.textContent = '❄️ Камера остановлена 🎅';
-      fpsEl.textContent = 'FPS: --';
-    }
-
-    btnStart.addEventListener('click', startCamera);
-    btnStop.addEventListener('click', stopCamera);
-
-    // При изменении размера окна подстраиваем canvas
-    window.addEventListener('resize', () => {
-      if (video.videoWidth) {
-        canvas.width = video.videoWidth;
-        canvas.height = video.videoHeight;
-      }
-    });
-
-    initHands().catch(err => {
-      statusEl.textContent = '❌ Ошибка загрузки MediaPipe: ' + err.message;
-    });
+    start().catch(console.error);
   </script>
 </body>
 </html>
