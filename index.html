@@ -9,156 +9,122 @@
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
     html, body {
-      width: 100%;
-      height: 100%;
-      overflow: hidden;
-      background: #000;
-      font-family: 'Segoe UI', system-ui, sans-serif;
-      color: #e0f7fa;
+      width: 100%; height: 100%; overflow: hidden;
+      background: #000; font-family: 'Segoe UI', system-ui, sans-serif; color: #e0f7fa;
     }
-
-    /* Портрет → просьба повернуть */
     #rotate-hint {
-      display: none;
-      position: fixed;
-      inset: 0;
-      z-index: 200;
-      background: #0a1628;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      gap: 16px;
-      text-align: center;
-      padding: 24px;
-      font-size: 1.2rem;
+      display: none; position: fixed; inset: 0; z-index: 200; background: #0a1628;
+      flex-direction: column; align-items: center; justify-content: center;
+      gap: 16px; text-align: center; padding: 24px; font-size: 1.2rem;
     }
-    #rotate-hint .icon {
-      font-size: 3rem;
-      animation: tilt 1.8s ease-in-out infinite;
-    }
-    @keyframes tilt {
-      0%, 100% { transform: rotate(0deg); }
-      50% { transform: rotate(90deg); }
-    }
+    #rotate-hint .icon { font-size: 3rem; animation: tilt 1.8s ease-in-out infinite; }
+    @keyframes tilt { 0%,100%{transform:rotate(0)} 50%{transform:rotate(90deg)} }
     @media screen and (orientation: portrait) {
       #rotate-hint { display: flex; }
-      #menu, #game { visibility: hidden !important; pointer-events: none !important; }
+      #menu, #game, #handMenu, #clockView, #browserView { visibility: hidden !important; pointer-events: none !important; }
     }
-
-    /* ===== Меню ===== */
     #menu {
-      position: fixed;
-      inset: 0;
-      z-index: 100;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      background: linear-gradient(160deg, #0a1628 0%, #0d2137 50%, #0a1628 100%);
-      gap: 18px;
-      padding: 20px;
+      position: fixed; inset: 0; z-index: 100; display: flex; flex-direction: column;
+      align-items: center; justify-content: center;
+      background: linear-gradient(160deg,#0a1628,#0d2137,#0a1628); gap: 18px; padding: 20px;
     }
-    #menu h1 {
-      font-size: clamp(1.25rem, 4vw, 1.75rem);
-      text-shadow: 0 0 16px rgba(0,229,255,0.5);
-    }
-    #menu .sub {
-      font-size: 0.9rem;
-      opacity: 0.75;
-      margin-bottom: 6px;
-    }
+    #menu h1 { font-size: clamp(1.25rem,4vw,1.75rem); text-shadow: 0 0 16px rgba(0,229,255,.5); }
+    #menu .sub { font-size: .9rem; opacity: .75; margin-bottom: 6px; }
     .mode-btn {
-      width: min(300px, 70vw);
-      padding: 14px 20px;
-      border: 2px solid rgba(0,229,255,0.45);
-      border-radius: 16px;
-      background: rgba(0,40,60,0.55);
-      color: #e0f7fa;
-      font-size: 1rem;
-      cursor: pointer;
-      text-align: left;
-      transition: transform 0.15s, background 0.15s, box-shadow 0.15s;
-    }
-    .mode-btn:hover, .mode-btn:active {
-      transform: scale(1.03);
-      background: rgba(0,80,100,0.7);
-      box-shadow: 0 0 20px rgba(0,229,255,0.35);
+      width: min(300px,70vw); padding: 14px 20px; border: 2px solid rgba(0,229,255,.45);
+      border-radius: 16px; background: rgba(0,40,60,.55); color: #e0f7fa; font-size: 1rem;
+      cursor: pointer; text-align: left;
     }
     .mode-btn strong { display: block; font-size: 1.1rem; margin-bottom: 2px; }
-    .mode-btn span { font-size: 0.8rem; opacity: 0.8; }
+    .mode-btn span { font-size: .8rem; opacity: .8; }
     #menu.hidden { display: none; }
-
-    /* ===== 2 камеры горизонтально ===== */
     #game {
-      position: fixed;
-      inset: 0;
-      display: none;
-      flex-direction: row;
-      width: 100vw;
-      height: 100vh;
+      position: fixed; inset: 0; display: none; flex-direction: row; width: 100vw; height: 100vh;
     }
     #game.active { display: flex; }
-
     .cam-panel {
-      position: relative;
-      width: 50%;
-      height: 100%;
-      overflow: hidden;
-      border-right: 2px solid rgba(0,229,255,0.35);
+      position: relative; width: 50%; height: 100%; overflow: hidden;
+      border-right: 2px solid rgba(0,229,255,.35);
     }
     .cam-panel:last-child { border-right: none; }
-
-    .cam-panel video,
-    .cam-panel canvas {
-      position: absolute;
-      top: 0;
-      left: 0;
-      width: 100%;
-      height: 100%;
-      object-fit: cover;
-      transform: scaleX(-1);
+    .cam-panel video, .cam-panel canvas {
+      position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+      object-fit: cover; transform: scaleX(-1);
     }
     .cam-panel video { z-index: 1; }
-    .cam-panel canvas {
-      z-index: 2;
-      pointer-events: none;
-    }
+    .cam-panel canvas { z-index: 2; pointer-events: none; }
     .cam-label {
-      position: absolute;
-      top: 10px;
-      left: 12px;
-      z-index: 10;
-      background: rgba(0,0,0,0.55);
-      padding: 4px 12px;
-      border-radius: 10px;
-      font-size: 0.8rem;
-      color: #80deea;
-      pointer-events: none;
+      position: absolute; top: 10px; left: 12px; z-index: 10;
+      background: rgba(0,0,0,.55); padding: 4px 12px; border-radius: 10px;
+      font-size: .8rem; color: #80deea; pointer-events: none;
     }
-
-    #clock {
-      position: fixed;
-      top: 50%;
-      left: 50%;
-      transform: translate(-50%, -50%);
-      z-index: 30;
-      text-align: center;
-      color: #fff;
-      text-shadow: 0 0 24px rgba(0,229,255,0.9), 0 4px 16px rgba(0,0,0,0.8);
-      opacity: 0;
-      pointer-events: none;
-      transition: opacity 0.25s ease;
+    #handMenu {
+      position: fixed; inset: 0; z-index: 50; display: none;
+      align-items: center; justify-content: center;
+      background: rgba(0,10,20,.72); backdrop-filter: blur(8px);
     }
-    #clock.show { opacity: 1; }
-    #clock .time {
-      font-size: clamp(2.4rem, 9vw, 4.8rem);
-      font-weight: 700;
-      letter-spacing: 3px;
+    #handMenu.open { display: flex; }
+    .hand-menu-box {
+      display: flex; gap: 48px; align-items: center; justify-content: center;
+      flex-wrap: wrap; padding: 24px;
     }
-    #clock .date {
-      font-size: clamp(0.95rem, 3.2vw, 1.5rem);
-      margin-top: 8px;
-      opacity: 0.95;
+    .menu-icon {
+      width: 110px; height: 110px; border-radius: 24px;
+      border: 3px solid rgba(0,229,255,.5); background: rgba(0,40,60,.75);
+      display: flex; flex-direction: column; align-items: center; justify-content: center;
+      gap: 8px; position: relative; transition: border-color .2s, box-shadow .2s, transform .2s;
+    }
+    .menu-icon .emoji { font-size: 2.6rem; line-height: 1; }
+    .menu-icon .label { font-size: .85rem; opacity: .9; }
+    .menu-icon.hover {
+      border-color: #00e5ff; box-shadow: 0 0 28px rgba(0,229,255,.55); transform: scale(1.06);
+    }
+    .menu-icon .progress {
+      position: absolute; inset: -4px; border-radius: 26px; pointer-events: none;
+    }
+    .hint-bar {
+      position: absolute; bottom: 18px; left: 50%; transform: translateX(-50%);
+      font-size: .85rem; opacity: .75; text-align: center; white-space: nowrap;
+    }
+    #fingerCursor {
+      position: fixed; width: 22px; height: 22px; border-radius: 50%;
+      border: 2px solid #00e5ff; background: rgba(0,229,255,.35);
+      box-shadow: 0 0 12px rgba(0,229,255,.7); z-index: 60; pointer-events: none;
+      display: none; transform: translate(-50%,-50%);
+    }
+    #fingerCursor.visible { display: block; }
+    #clockView {
+      position: fixed; inset: 0; z-index: 55; display: none;
+      align-items: center; justify-content: center; background: rgba(0,10,20,.8);
+      flex-direction: column; gap: 12px;
+    }
+    #clockView.open { display: flex; }
+    #clockView .time {
+      font-size: clamp(2.8rem,12vw,5.5rem); font-weight: 700; letter-spacing: 3px;
+      text-shadow: 0 0 24px rgba(0,229,255,.8);
+    }
+    #clockView .date { font-size: clamp(1rem,3.5vw,1.6rem); opacity: .95; }
+    #clockView .back-hint { margin-top: 24px; font-size: .85rem; opacity: .7; }
+    #browserView {
+      position: fixed; inset: 0; z-index: 55; display: none; flex-direction: column; background: #0a1628;
+    }
+    #browserView.open { display: flex; }
+    .browser-bar {
+      display: flex; gap: 8px; padding: 10px 12px; background: rgba(0,30,50,.95);
+      border-bottom: 1px solid rgba(0,229,255,.3); align-items: center; flex-shrink: 0;
+    }
+    .browser-bar input {
+      flex: 1; padding: 10px 14px; border-radius: 12px; border: 1px solid rgba(0,229,255,.4);
+      background: rgba(0,20,40,.8); color: #e0f7fa; font-size: .95rem; outline: none;
+    }
+    .browser-bar button {
+      padding: 10px 16px; border-radius: 12px; border: none;
+      background: linear-gradient(135deg,#00bcd4,#0097a7); color: #fff; font-size: .9rem; cursor: pointer;
+      white-space: nowrap;
+    }
+    #browserFrame { flex: 1; width: 100%; border: none; background: #fff; }
+    .browser-hint {
+      padding: 6px 12px; font-size: .75rem; opacity: .7; text-align: center; background: rgba(0,0,0,.4);
     }
   </style>
 </head>
@@ -166,7 +132,6 @@
   <div id="rotate-hint">
     <div class="icon">📱</div>
     <div>Поверни телефон горизонтально</div>
-    <div style="opacity:0.7;font-size:0.9rem">❄️ Landscape</div>
   </div>
 
   <div id="menu">
@@ -195,9 +160,38 @@
     </div>
   </div>
 
-  <div id="clock">
-    <div class="time" id="clockTime">00:00:00</div>
-    <div class="date" id="clockDate">—</div>
+  <div id="fingerCursor"></div>
+
+  <div id="handMenu">
+    <div class="hand-menu-box">
+      <div class="menu-icon" id="iconClock" data-action="clock">
+        <canvas class="progress" width="118" height="118"></canvas>
+        <div class="emoji">🕐</div>
+        <div class="label">Часы</div>
+      </div>
+      <div class="menu-icon" id="iconBrowser" data-action="browser">
+        <canvas class="progress" width="118" height="118"></canvas>
+        <div class="emoji">🌐</div>
+        <div class="label">Браузер</div>
+      </div>
+    </div>
+    <div class="hint-bar">Наведи палец · 3 сек · Двойной щипок — закрыть</div>
+  </div>
+
+  <div id="clockView">
+    <div class="time" id="cvTime">00:00:00</div>
+    <div class="date" id="cvDate">—</div>
+    <div class="back-hint">Двойной щипок — назад в меню</div>
+  </div>
+
+  <div id="browserView">
+    <div class="browser-bar">
+      <input type="text" id="searchInput" placeholder="Поиск в интернете..." enterkeyhint="search">
+      <button id="btnSearch">Найти</button>
+      <button id="btnBrowserBack">Назад</button>
+    </div>
+    <div class="browser-hint">Двойной щипок — закрыть · Можно печатать на клавиатуре</div>
+    <iframe id="browserFrame" src="about:blank" sandbox="allow-scripts allow-same-origin allow-forms allow-popups"></iframe>
   </div>
 
   <script>
@@ -207,13 +201,20 @@
     const canvasR = document.getElementById('canvasR');
     const ctxL = canvasL.getContext('2d');
     const ctxR = canvasR.getContext('2d');
-    const clockEl = document.getElementById('clock');
-    const clockTime = document.getElementById('clockTime');
-    const clockDate = document.getElementById('clockDate');
-    const menu = document.getElementById('menu');
+    const startMenu = document.getElementById('menu');
     const game = document.getElementById('game');
+    const handMenu = document.getElementById('handMenu');
+    const clockView = document.getElementById('clockView');
+    const browserView = document.getElementById('browserView');
+    const fingerCursor = document.getElementById('fingerCursor');
+    const iconClock = document.getElementById('iconClock');
+    const iconBrowser = document.getElementById('iconBrowser');
+    const searchInput = document.getElementById('searchInput');
+    const browserFrame = document.getElementById('browserFrame');
 
     let tipsOnly = false;
+    let gameStarted = false;
+    let uiState = 'game';
 
     const TIP_INDICES = [4, 8, 12, 16, 20];
     const TIP_COLORS = ['#FF6B6B', '#4ECDC4', '#FFE66D', '#95E1D3', '#F38181'];
@@ -226,21 +227,13 @@
     })();
 
     const QUALITY_LEVELS = [
-      { w: 320, h: 240, fps: 20 },
-      { w: 480, h: 360, fps: 24 },
+      { w: 480, h: 360, fps: 30 },
       { w: 640, h: 480, fps: 30 }
     ];
     let qualityIndex = isWeakDevice ? 0 : 1;
     let currentQuality = QUALITY_LEVELS[qualityIndex];
 
-    let frameCount = 0;
-    let lastFpsTime = performance.now();
-    let lowFpsStreak = 0;
-    let highFpsStreak = 0;
-    let frameSkip = isWeakDevice ? 1 : 0;
-    let frameCounter = 0;
-
-    const SMOOTH_ALPHA = 0.2;
+    const SMOOTH_ALPHA = 0.55;
     let smoothedHands = [null, null];
 
     function smoothLandmarks(newLandmarks, handIdx) {
@@ -256,85 +249,174 @@
       }
       return prev;
     }
+    function resetSmooth(handIdx) { smoothedHands[handIdx] = null; }
 
-    function resetSmooth(handIdx) {
-      smoothedHands[handIdx] = null;
-    }
-
-    const PINCH_THRESHOLD = 0.055;
-    const PINCH_NEED_FRAMES = 5;
-    const MIN_HAND_SIZE = 0.08;
-    const MAX_HAND_SIZE = 0.55;
-    let pinchFrames = 0;
+    const PINCH_THRESHOLD = 0.06;
+    const MIN_HAND_SIZE = 0.06;
+    const MAX_HAND_SIZE = 0.6;
+    let wasPinching = false;
+    let lastPinchEndTime = 0;
+    let pinchCount = 0;
+    const DOUBLE_PINCH_MS = 700;
 
     function handSize(lm) {
       const dx = lm[0].x - lm[12].x;
       const dy = lm[0].y - lm[12].y;
       return Math.sqrt(dx * dx + dy * dy);
     }
-
     function isPinching(lm) {
       const size = handSize(lm);
       if (size < MIN_HAND_SIZE || size > MAX_HAND_SIZE) return false;
       const dx = lm[4].x - lm[8].x;
       const dy = lm[4].y - lm[8].y;
       const dist = Math.sqrt(dx * dx + dy * dy);
-      const adaptiveThresh = PINCH_THRESHOLD * (size / 0.2);
-      const thresh = Math.max(0.035, Math.min(0.09, adaptiveThresh));
-      const zDiff = Math.abs((lm[4].z || 0) - (lm[8].z || 0));
-      if (zDiff > 0.12) return false;
+      const thresh = Math.max(0.04, Math.min(0.1, PINCH_THRESHOLD * (size / 0.2)));
       return dist < thresh;
     }
 
-    function updateClockText() {
+    function handlePinchLogic(anyPinch) {
+      if (anyPinch && !wasPinching) {
+        wasPinching = true;
+      } else if (!anyPinch && wasPinching) {
+        wasPinching = false;
+        const now = performance.now();
+        if (now - lastPinchEndTime < DOUBLE_PINCH_MS) pinchCount++;
+        else pinchCount = 1;
+        lastPinchEndTime = now;
+        if (pinchCount >= 2) {
+          pinchCount = 0;
+          onDoublePinch();
+        }
+      }
+    }
+
+    function onDoublePinch() {
+      if (uiState === 'game') openHandMenu();
+      else if (uiState === 'menu') closeHandMenu();
+      else if (uiState === 'clock') { closeClockView(); openHandMenu(); }
+      else if (uiState === 'browser') { closeBrowserView(); openHandMenu(); }
+    }
+
+    function openHandMenu() {
+      uiState = 'menu';
+      handMenu.classList.add('open');
+      clockView.classList.remove('open');
+      browserView.classList.remove('open');
+      fingerCursor.classList.add('visible');
+      resetDwell();
+    }
+    function closeHandMenu() {
+      uiState = 'game';
+      handMenu.classList.remove('open');
+      fingerCursor.classList.remove('visible');
+      resetDwell();
+    }
+    function openClockView() {
+      uiState = 'clock';
+      handMenu.classList.remove('open');
+      updateClockDisplay();
+      clockView.classList.add('open');
+      fingerCursor.classList.remove('visible');
+      resetDwell();
+    }
+    function closeClockView() { clockView.classList.remove('open'); }
+    function openBrowserView() {
+      uiState = 'browser';
+      handMenu.classList.remove('open');
+      browserView.classList.add('open');
+      fingerCursor.classList.remove('visible');
+      resetDwell();
+      if (!browserFrame.src || browserFrame.src === 'about:blank') {
+        browserFrame.src = 'https://duckduckgo.com/';
+      }
+    }
+    function closeBrowserView() { browserView.classList.remove('open'); }
+
+    function updateClockDisplay() {
       const now = new Date();
       const hh = String(now.getHours()).padStart(2, '0');
       const mm = String(now.getMinutes()).padStart(2, '0');
       const ss = String(now.getSeconds()).padStart(2, '0');
-      clockTime.textContent = hh + ':' + mm + ':' + ss;
+      document.getElementById('cvTime').textContent = hh + ':' + mm + ':' + ss;
       const days = ['Воскресенье','Понедельник','Вторник','Среда','Четверг','Пятница','Суббота'];
       const months = ['января','февраля','марта','апреля','мая','июня','июля','августа','сентября','октября','ноября','декабря'];
-      clockDate.textContent = days[now.getDay()] + ', ' + now.getDate() + ' ' + months[now.getMonth()] + ' ' + now.getFullYear();
+      document.getElementById('cvDate').textContent =
+        days[now.getDay()] + ', ' + now.getDate() + ' ' + months[now.getMonth()] + ' ' + now.getFullYear();
+    }
+    setInterval(function () { if (uiState === 'clock') updateClockDisplay(); }, 1000);
+
+    const DWELL_MS = 3000;
+    let dwellTarget = null;
+    let dwellStart = 0;
+
+    function resetDwell() {
+      dwellTarget = null; dwellStart = 0;
+      drawProgress(iconClock, 0); drawProgress(iconBrowser, 0);
+      iconClock.classList.remove('hover'); iconBrowser.classList.remove('hover');
+    }
+    function drawProgress(iconEl, ratio) {
+      const c = iconEl.querySelector('.progress');
+      const ctx = c.getContext('2d');
+      const size = c.width, cx = size / 2, cy = size / 2, r = size / 2 - 3;
+      ctx.clearRect(0, 0, size, size);
+      if (ratio <= 0) return;
+      ctx.beginPath();
+      ctx.arc(cx, cy, r, -Math.PI / 2, -Math.PI / 2 + ratio * Math.PI * 2);
+      ctx.strokeStyle = '#00e5ff'; ctx.lineWidth = 4; ctx.lineCap = 'round'; ctx.stroke();
+    }
+    function pointInIcon(sx, sy, iconEl) {
+      const rect = iconEl.getBoundingClientRect();
+      return sx >= rect.left && sx <= rect.right && sy >= rect.top && sy <= rect.bottom;
+    }
+    function updateDwell(sx, sy) {
+      if (uiState !== 'menu') return;
+      let hit = null;
+      if (pointInIcon(sx, sy, iconClock)) hit = 'clock';
+      else if (pointInIcon(sx, sy, iconBrowser)) hit = 'browser';
+
+      if (hit !== dwellTarget) {
+        dwellTarget = hit;
+        dwellStart = hit ? performance.now() : 0;
+        iconClock.classList.toggle('hover', hit === 'clock');
+        iconBrowser.classList.toggle('hover', hit === 'browser');
+        if (!hit) { drawProgress(iconClock, 0); drawProgress(iconBrowser, 0); }
+      }
+      if (dwellTarget) {
+        const ratio = Math.min(1, (performance.now() - dwellStart) / DWELL_MS);
+        if (dwellTarget === 'clock') { drawProgress(iconClock, ratio); drawProgress(iconBrowser, 0); }
+        else { drawProgress(iconBrowser, ratio); drawProgress(iconClock, 0); }
+        if (ratio >= 1) {
+          const action = dwellTarget;
+          resetDwell();
+          if (action === 'clock') openClockView();
+          else if (action === 'browser') openBrowserView();
+        }
+      }
     }
 
-    setInterval(function () {
-      if (clockEl.classList.contains('show')) updateClockText();
-    }, 1000);
+    function tipToScreen(lm) {
+      const tip = lm[8];
+      return { x: (1 - tip.x) * window.innerWidth, y: tip.y * window.innerHeight };
+    }
 
     function drawTips(ctx, lm, w, h) {
       for (let t = 0; t < TIP_INDICES.length; t++) {
         const p = lm[TIP_INDICES[t]];
-        const x = p.x * w;
-        const y = p.y * h;
         ctx.beginPath();
-        ctx.arc(x, y, 12, 0, Math.PI * 2);
-        ctx.fillStyle = 'rgba(255,255,255,0.12)';
-        ctx.fill();
-        ctx.beginPath();
-        ctx.arc(x, y, 7, 0, Math.PI * 2);
+        ctx.arc(p.x * w, p.y * h, 6.5, 0, Math.PI * 2);
         ctx.fillStyle = TIP_COLORS[t];
-        ctx.fill();
-        ctx.beginPath();
-        ctx.arc(x - 2, y - 2, 2.2, 0, Math.PI * 2);
-        ctx.fillStyle = 'rgba(255,255,255,0.7)';
         ctx.fill();
       }
     }
-
     const HAND_CONNECTIONS = [
-      [0,1],[1,2],[2,3],[3,4],
-      [0,5],[5,6],[6,7],[7,8],
-      [0,9],[9,10],[10,11],[11,12],
-      [0,13],[13,14],[14,15],[15,16],
-      [0,17],[17,18],[18,19],[19,20],
-      [5,9],[9,13],[13,17]
+      [0,1],[1,2],[2,3],[3,4],[0,5],[5,6],[6,7],[7,8],
+      [0,9],[9,10],[10,11],[11,12],[0,13],[13,14],[14,15],[15,16],
+      [0,17],[17,18],[18,19],[19,20],[5,9],[9,13],[13,17]
     ];
-
     const FINGER_COLORS = {
-      thumb: '#FF6B6B', index: '#4ECDC4', middle: '#FFE66D',
-      ring: '#95E1D3', pinky: '#F38181', palm: '#A8DADC'
+      thumb:'#FF6B6B', index:'#4ECDC4', middle:'#FFE66D',
+      ring:'#95E1D3', pinky:'#F38181', palm:'#A8DADC'
     };
-
     function getColor(i, j) {
       if (i <= 4 || j <= 4) return FINGER_COLORS.thumb;
       if ((i >= 5 && i <= 8) || (j >= 5 && j <= 8)) return FINGER_COLORS.index;
@@ -343,37 +425,21 @@
       if ((i >= 17 && i <= 20) || (j >= 17 && j <= 20)) return FINGER_COLORS.pinky;
       return FINGER_COLORS.palm;
     }
-
     function drawFull(ctx, lm, w, h) {
-      ctx.beginPath();
-      ctx.arc(lm[0].x * w, lm[0].y * h, 36, 0, Math.PI * 2);
-      ctx.fillStyle = 'rgba(0,229,255,0.12)';
-      ctx.fill();
-
       HAND_CONNECTIONS.forEach(function (pair) {
         const a = pair[0], b = pair[1];
         ctx.beginPath();
         ctx.moveTo(lm[a].x * w, lm[a].y * h);
         ctx.lineTo(lm[b].x * w, lm[b].y * h);
-        ctx.strokeStyle = getColor(a, b);
-        ctx.lineWidth = 3.2;
-        ctx.lineCap = 'round';
-        ctx.stroke();
+        ctx.strokeStyle = getColor(a, b); ctx.lineWidth = 3; ctx.lineCap = 'round'; ctx.stroke();
       });
-
       lm.forEach(function (p, idx) {
-        let r = 3.8;
-        let c = '#fff';
-        if (idx === 0) { r = 6; c = '#00E5FF'; }
-        else if ([4,8,12,16,20].indexOf(idx) !== -1) { r = 5; c = '#FFD700'; }
-        else if ([5,9,13,17].indexOf(idx) !== -1) { r = 4.5; c = '#80DEEA'; }
-        ctx.beginPath();
-        ctx.arc(p.x * w, p.y * h, r, 0, Math.PI * 2);
-        ctx.fillStyle = c;
-        ctx.fill();
+        let r = 3.5, c = '#fff';
+        if (idx === 0) { r = 5.5; c = '#00E5FF'; }
+        else if ([4,8,12,16,20].indexOf(idx) !== -1) { r = 4.8; c = '#FFD700'; }
+        ctx.beginPath(); ctx.arc(p.x * w, p.y * h, r, 0, Math.PI * 2); ctx.fillStyle = c; ctx.fill();
       });
     }
-
     function drawOnBoth(landmarksList) {
       [canvasL, canvasR].forEach(function (c, idx) {
         const v = idx === 0 ? videoL : videoR;
@@ -382,10 +448,8 @@
           c.height = v.videoHeight || currentQuality.h;
         }
       });
-
       ctxL.clearRect(0, 0, canvasL.width, canvasL.height);
       ctxR.clearRect(0, 0, canvasR.width, canvasR.height);
-
       for (let i = 0; i < landmarksList.length; i++) {
         const lm = landmarksList[i];
         if (tipsOnly) {
@@ -398,97 +462,33 @@
       }
     }
 
-    function updateAdaptiveQuality() {
-      frameCount++;
-      const now = performance.now();
-      if (now - lastFpsTime < 1000) return;
-      const fps = frameCount;
-      frameCount = 0;
-      lastFpsTime = now;
-
-      if (fps < 12 && qualityIndex > 0) {
-        lowFpsStreak++;
-        highFpsStreak = 0;
-        if (lowFpsStreak >= 2) {
-          qualityIndex--;
-          currentQuality = QUALITY_LEVELS[qualityIndex];
-          frameSkip = qualityIndex === 0 ? 1 : 0;
-          lowFpsStreak = 0;
-          applyQuality();
-        }
-      } else if (fps > 24 && qualityIndex < QUALITY_LEVELS.length - 1) {
-        highFpsStreak++;
-        lowFpsStreak = 0;
-        if (highFpsStreak >= 3) {
-          qualityIndex++;
-          currentQuality = QUALITY_LEVELS[qualityIndex];
-          frameSkip = qualityIndex === 0 ? 1 : 0;
-          highFpsStreak = 0;
-          applyQuality();
-        }
-      } else {
-        lowFpsStreak = 0;
-        highFpsStreak = 0;
-      }
-    }
-
-    let hands = null;
-    let camera = null;
-    let stream = null;
-
-    async function applyQuality() {
-      if (hands) {
-        hands.setOptions({
-          maxNumHands: 2,
-          modelComplexity: 0,
-          minDetectionConfidence: 0.55,
-          minTrackingConfidence: 0.45
-        });
-      }
-      if (stream) {
-        const track = stream.getVideoTracks()[0];
-        if (track) {
-          try {
-            await track.applyConstraints({
-              width: { ideal: currentQuality.w, max: currentQuality.w },
-              height: { ideal: currentQuality.h, max: currentQuality.h },
-              frameRate: { ideal: currentQuality.fps, max: currentQuality.fps }
-            });
-          } catch (e) {}
-        }
-      }
-    }
+    let hands = null, camera = null, stream = null;
 
     function onResults(results) {
-      updateAdaptiveQuality();
-      frameCounter++;
-      if (frameSkip > 0 && (frameCounter % (frameSkip + 1)) !== 0) return;
-
       const detected = results.multiHandLandmarks || [];
       const smoothedList = [];
       let anyPinch = false;
-
+      let primaryLm = null;
       for (let i = 0; i < 2; i++) {
         if (i < detected.length) {
           const smoothed = smoothLandmarks(detected[i], i);
           smoothedList.push(smoothed);
           if (isPinching(smoothed)) anyPinch = true;
-        } else {
-          resetSmooth(i);
-        }
+          if (!primaryLm) primaryLm = smoothed;
+        } else resetSmooth(i);
       }
-
-      drawOnBoth(smoothedList);
-
-      if (anyPinch) {
-        pinchFrames++;
-        if (pinchFrames >= PINCH_NEED_FRAMES) {
-          updateClockText();
-          clockEl.classList.add('show');
+      if (gameStarted) {
+        drawOnBoth(smoothedList);
+        handlePinchLogic(anyPinch);
+        if (primaryLm && uiState === 'menu') {
+          const pos = tipToScreen(primaryLm);
+          fingerCursor.style.left = pos.x + 'px';
+          fingerCursor.style.top = pos.y + 'px';
+          fingerCursor.classList.add('visible');
+          updateDwell(pos.x, pos.y);
+        } else if (uiState !== 'menu') {
+          fingerCursor.classList.remove('visible');
         }
-      } else {
-        pinchFrames = 0;
-        clockEl.classList.remove('show');
       }
     }
 
@@ -498,12 +498,10 @@
           facingMode: 'user',
           width: { ideal: currentQuality.w, max: currentQuality.w },
           height: { ideal: currentQuality.h, max: currentQuality.h },
-          frameRate: { ideal: currentQuality.fps, max: currentQuality.fps }
+          frameRate: { ideal: 30, max: 30 }
         },
         audio: false
       });
-
-      // Один поток фронталки на оба экрана
       videoL.srcObject = stream;
       videoR.srcObject = stream;
       await Promise.all([videoL.play(), videoR.play()]);
@@ -514,39 +512,43 @@
         }
       });
       hands.setOptions({
-        maxNumHands: 2,
-        modelComplexity: 0,
-        minDetectionConfidence: 0.55,
-        minTrackingConfidence: 0.45
+        maxNumHands: 2, modelComplexity: 0,
+        minDetectionConfidence: 0.5, minTrackingConfidence: 0.4
       });
       hands.onResults(onResults);
 
       camera = new Camera(videoL, {
-        onFrame: async function () {
-          await hands.send({ image: videoL });
-        },
-        width: currentQuality.w,
-        height: currentQuality.h
+        onFrame: async function () { await hands.send({ image: videoL }); },
+        width: currentQuality.w, height: currentQuality.h
       });
       camera.start();
-
+      gameStarted = true;
       try {
-        if (screen.orientation && screen.orientation.lock) {
-          await screen.orientation.lock('landscape');
-        }
+        if (screen.orientation && screen.orientation.lock) await screen.orientation.lock('landscape');
       } catch (e) {}
     }
 
+    function doSearch() {
+      let q = searchInput.value.trim();
+      if (!q) return;
+      if (!/^https?:\/\//i.test(q)) q = 'https://duckduckgo.com/?q=' + encodeURIComponent(q);
+      browserFrame.src = q;
+    }
+    document.getElementById('btnSearch').addEventListener('click', doSearch);
+    searchInput.addEventListener('keydown', function (e) { if (e.key === 'Enter') doSearch(); });
+    document.getElementById('btnBrowserBack').addEventListener('click', function () {
+      closeBrowserView(); openHandMenu();
+    });
+
     document.getElementById('btnFull').addEventListener('click', function () {
       tipsOnly = false;
-      menu.classList.add('hidden');
+      startMenu.classList.add('hidden');
       game.classList.add('active');
       startCamera().catch(function (err) { console.error(err); });
     });
-
     document.getElementById('btnTips').addEventListener('click', function () {
       tipsOnly = true;
-      menu.classList.add('hidden');
+      startMenu.classList.add('hidden');
       game.classList.add('active');
       startCamera().catch(function (err) { console.error(err); });
     });
