@@ -2,7 +2,7 @@
 <html lang="ru">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, maximum-scale=1.0">
   <title>Hand Tracking</title>
   <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js" crossorigin="anonymous"></script>
   <script src="https://cdn.jsdelivr.net/npm/@mediapipe/hands/hands.js" crossorigin="anonymous"></script>
@@ -13,19 +13,103 @@
       height: 100%;
       overflow: hidden;
       background: #000;
+      font-family: 'Segoe UI', system-ui, sans-serif;
+      color: #e0f7fa;
     }
-    #container {
+
+    /* Портрет → просьба повернуть */
+    #rotate-hint {
+      display: none;
       position: fixed;
       inset: 0;
+      z-index: 200;
+      background: #0a1628;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 16px;
+      text-align: center;
+      padding: 24px;
+      font-size: 1.2rem;
+    }
+    #rotate-hint .icon {
+      font-size: 3rem;
+      animation: tilt 1.8s ease-in-out infinite;
+    }
+    @keyframes tilt {
+      0%, 100% { transform: rotate(0deg); }
+      50% { transform: rotate(90deg); }
+    }
+    @media screen and (orientation: portrait) {
+      #rotate-hint { display: flex; }
+      #menu, #game { visibility: hidden !important; pointer-events: none !important; }
+    }
+
+    /* ===== Меню ===== */
+    #menu {
+      position: fixed;
+      inset: 0;
+      z-index: 100;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      background: linear-gradient(160deg, #0a1628 0%, #0d2137 50%, #0a1628 100%);
+      gap: 18px;
+      padding: 20px;
+    }
+    #menu h1 {
+      font-size: clamp(1.25rem, 4vw, 1.75rem);
+      text-shadow: 0 0 16px rgba(0,229,255,0.5);
+    }
+    #menu .sub {
+      font-size: 0.9rem;
+      opacity: 0.75;
+      margin-bottom: 6px;
+    }
+    .mode-btn {
+      width: min(300px, 70vw);
+      padding: 14px 20px;
+      border: 2px solid rgba(0,229,255,0.45);
+      border-radius: 16px;
+      background: rgba(0,40,60,0.55);
+      color: #e0f7fa;
+      font-size: 1rem;
+      cursor: pointer;
+      text-align: left;
+      transition: transform 0.15s, background 0.15s, box-shadow 0.15s;
+    }
+    .mode-btn:hover, .mode-btn:active {
+      transform: scale(1.03);
+      background: rgba(0,80,100,0.7);
+      box-shadow: 0 0 20px rgba(0,229,255,0.35);
+    }
+    .mode-btn strong { display: block; font-size: 1.1rem; margin-bottom: 2px; }
+    .mode-btn span { font-size: 0.8rem; opacity: 0.8; }
+    #menu.hidden { display: none; }
+
+    /* ===== 2 камеры горизонтально ===== */
+    #game {
+      position: fixed;
+      inset: 0;
+      display: none;
+      flex-direction: row;
       width: 100vw;
       height: 100vh;
     }
-    /*
-      Браузер отдаёт фронталку уже зеркально (selfie).
-      scaleX(-1) отменяет зеркало → твоя ПРАВАЯ рука будет СПРАВА на экране.
-      Canvas тоже переворачивается, поэтому скелет совпадает с рукой.
-    */
-    video, canvas {
+    #game.active { display: flex; }
+
+    .cam-panel {
+      position: relative;
+      width: 50%;
+      height: 100%;
+      overflow: hidden;
+      border-right: 2px solid rgba(0,229,255,0.35);
+    }
+    .cam-panel:last-child { border-right: none; }
+
+    .cam-panel video,
+    .cam-panel canvas {
       position: absolute;
       top: 0;
       left: 0;
@@ -34,11 +118,24 @@
       object-fit: cover;
       transform: scaleX(-1);
     }
-    video { z-index: 1; }
-    canvas {
+    .cam-panel video { z-index: 1; }
+    .cam-panel canvas {
       z-index: 2;
       pointer-events: none;
     }
+    .cam-label {
+      position: absolute;
+      top: 10px;
+      left: 12px;
+      z-index: 10;
+      background: rgba(0,0,0,0.55);
+      padding: 4px 12px;
+      border-radius: 10px;
+      font-size: 0.8rem;
+      color: #80deea;
+      pointer-events: none;
+    }
+
     #clock {
       position: fixed;
       top: 50%;
@@ -47,44 +144,79 @@
       z-index: 30;
       text-align: center;
       color: #fff;
-      font-family: 'Segoe UI', system-ui, sans-serif;
       text-shadow: 0 0 24px rgba(0,229,255,0.9), 0 4px 16px rgba(0,0,0,0.8);
       opacity: 0;
       pointer-events: none;
-      transition: opacity 0.3s ease;
+      transition: opacity 0.25s ease;
     }
-    #clock.show {
-      opacity: 1;
-    }
+    #clock.show { opacity: 1; }
     #clock .time {
-      font-size: clamp(3rem, 13vw, 6rem);
+      font-size: clamp(2.4rem, 9vw, 4.8rem);
       font-weight: 700;
       letter-spacing: 3px;
     }
     #clock .date {
-      font-size: clamp(1.15rem, 4.5vw, 1.9rem);
-      margin-top: 10px;
+      font-size: clamp(0.95rem, 3.2vw, 1.5rem);
+      margin-top: 8px;
       opacity: 0.95;
     }
   </style>
 </head>
 <body>
-  <div id="container">
-    <video id="video" playsinline autoplay muted></video>
-    <canvas id="canvas"></canvas>
+  <div id="rotate-hint">
+    <div class="icon">📱</div>
+    <div>Поверни телефон горизонтально</div>
+    <div style="opacity:0.7;font-size:0.9rem">❄️ Landscape</div>
   </div>
+
+  <div id="menu">
+    <h1>❄️ Трекинг рук</h1>
+    <p class="sub">Выбери режим · 2 камеры</p>
+    <button class="mode-btn" id="btnFull">
+      <strong>🖐 Полный трекинг</strong>
+      <span>Скелет всей руки</span>
+    </button>
+    <button class="mode-btn" id="btnTips">
+      <strong>👆 Только кончики</strong>
+      <span>Кончики пальцев — быстрее</span>
+    </button>
+  </div>
+
+  <div id="game">
+    <div class="cam-panel">
+      <video id="videoL" playsinline autoplay muted></video>
+      <canvas id="canvasL"></canvas>
+      <div class="cam-label">📷 Левая</div>
+    </div>
+    <div class="cam-panel">
+      <video id="videoR" playsinline autoplay muted></video>
+      <canvas id="canvasR"></canvas>
+      <div class="cam-label">📷 Правая</div>
+    </div>
+  </div>
+
   <div id="clock">
     <div class="time" id="clockTime">00:00:00</div>
     <div class="date" id="clockDate">—</div>
   </div>
 
   <script>
-    const video = document.getElementById('video');
-    const canvas = document.getElementById('canvas');
-    const ctx = canvas.getContext('2d');
+    const videoL = document.getElementById('videoL');
+    const videoR = document.getElementById('videoR');
+    const canvasL = document.getElementById('canvasL');
+    const canvasR = document.getElementById('canvasR');
+    const ctxL = canvasL.getContext('2d');
+    const ctxR = canvasR.getContext('2d');
     const clockEl = document.getElementById('clock');
     const clockTime = document.getElementById('clockTime');
     const clockDate = document.getElementById('clockDate');
+    const menu = document.getElementById('menu');
+    const game = document.getElementById('game');
+
+    let tipsOnly = false;
+
+    const TIP_INDICES = [4, 8, 12, 16, 20];
+    const TIP_COLORS = ['#FF6B6B', '#4ECDC4', '#FFE66D', '#95E1D3', '#F38181'];
 
     const isWeakDevice = (() => {
       const cores = navigator.hardwareConcurrency || 2;
@@ -94,20 +226,21 @@
     })();
 
     const QUALITY_LEVELS = [
-      { w: 480, h: 360, complexity: 0, fps: 20 },
-      { w: 640, h: 480, complexity: 0, fps: 24 },
-      { w: 960, h: 720, complexity: 1, fps: 30 }
+      { w: 320, h: 240, fps: 20 },
+      { w: 480, h: 360, fps: 24 },
+      { w: 640, h: 480, fps: 30 }
     ];
-    let qualityIndex = isWeakDevice ? 1 : 2;
+    let qualityIndex = isWeakDevice ? 0 : 1;
     let currentQuality = QUALITY_LEVELS[qualityIndex];
 
     let frameCount = 0;
     let lastFpsTime = performance.now();
     let lowFpsStreak = 0;
     let highFpsStreak = 0;
+    let frameSkip = isWeakDevice ? 1 : 0;
+    let frameCounter = 0;
 
-    // Очень сильное сглаживание
-    const SMOOTH_ALPHA = 0.15;
+    const SMOOTH_ALPHA = 0.2;
     let smoothedHands = [null, null];
 
     function smoothLandmarks(newLandmarks, handIdx) {
@@ -128,14 +261,29 @@
       smoothedHands[handIdx] = null;
     }
 
-    // Щипок — большой + указательный (мягкий порог)
-    const PINCH_THRESHOLD = 0.075;
+    const PINCH_THRESHOLD = 0.055;
+    const PINCH_NEED_FRAMES = 5;
+    const MIN_HAND_SIZE = 0.08;
+    const MAX_HAND_SIZE = 0.55;
     let pinchFrames = 0;
 
+    function handSize(lm) {
+      const dx = lm[0].x - lm[12].x;
+      const dy = lm[0].y - lm[12].y;
+      return Math.sqrt(dx * dx + dy * dy);
+    }
+
     function isPinching(lm) {
+      const size = handSize(lm);
+      if (size < MIN_HAND_SIZE || size > MAX_HAND_SIZE) return false;
       const dx = lm[4].x - lm[8].x;
       const dy = lm[4].y - lm[8].y;
-      return Math.sqrt(dx * dx + dy * dy) < PINCH_THRESHOLD;
+      const dist = Math.sqrt(dx * dx + dy * dy);
+      const adaptiveThresh = PINCH_THRESHOLD * (size / 0.2);
+      const thresh = Math.max(0.035, Math.min(0.09, adaptiveThresh));
+      const zDiff = Math.abs((lm[4].z || 0) - (lm[8].z || 0));
+      if (zDiff > 0.12) return false;
+      return dist < thresh;
     }
 
     function updateClockText() {
@@ -144,7 +292,6 @@
       const mm = String(now.getMinutes()).padStart(2, '0');
       const ss = String(now.getSeconds()).padStart(2, '0');
       clockTime.textContent = hh + ':' + mm + ':' + ss;
-
       const days = ['Воскресенье','Понедельник','Вторник','Среда','Четверг','Пятница','Суббота'];
       const months = ['января','февраля','марта','апреля','мая','июня','июля','августа','сентября','октября','ноября','декабря'];
       clockDate.textContent = days[now.getDay()] + ', ' + now.getDate() + ' ' + months[now.getMonth()] + ' ' + now.getFullYear();
@@ -153,6 +300,26 @@
     setInterval(function () {
       if (clockEl.classList.contains('show')) updateClockText();
     }, 1000);
+
+    function drawTips(ctx, lm, w, h) {
+      for (let t = 0; t < TIP_INDICES.length; t++) {
+        const p = lm[TIP_INDICES[t]];
+        const x = p.x * w;
+        const y = p.y * h;
+        ctx.beginPath();
+        ctx.arc(x, y, 12, 0, Math.PI * 2);
+        ctx.fillStyle = 'rgba(255,255,255,0.12)';
+        ctx.fill();
+        ctx.beginPath();
+        ctx.arc(x, y, 7, 0, Math.PI * 2);
+        ctx.fillStyle = TIP_COLORS[t];
+        ctx.fill();
+        ctx.beginPath();
+        ctx.arc(x - 2, y - 2, 2.2, 0, Math.PI * 2);
+        ctx.fillStyle = 'rgba(255,255,255,0.7)';
+        ctx.fill();
+      }
+    }
 
     const HAND_CONNECTIONS = [
       [0,1],[1,2],[2,3],[3,4],
@@ -177,39 +344,58 @@
       return FINGER_COLORS.palm;
     }
 
-    function drawSkeleton(lm) {
-      const w = canvas.width;
-      const h = canvas.height;
-
+    function drawFull(ctx, lm, w, h) {
       ctx.beginPath();
-      ctx.arc(lm[0].x * w, lm[0].y * h, qualityIndex === 0 ? 26 : 48, 0, Math.PI * 2);
-      ctx.fillStyle = 'rgba(0,229,255,0.15)';
+      ctx.arc(lm[0].x * w, lm[0].y * h, 36, 0, Math.PI * 2);
+      ctx.fillStyle = 'rgba(0,229,255,0.12)';
       ctx.fill();
 
-      const lw = qualityIndex === 0 ? 3 : 4;
       HAND_CONNECTIONS.forEach(function (pair) {
         const a = pair[0], b = pair[1];
         ctx.beginPath();
         ctx.moveTo(lm[a].x * w, lm[a].y * h);
         ctx.lineTo(lm[b].x * w, lm[b].y * h);
         ctx.strokeStyle = getColor(a, b);
-        ctx.lineWidth = lw;
+        ctx.lineWidth = 3.2;
         ctx.lineCap = 'round';
         ctx.stroke();
       });
 
       lm.forEach(function (p, idx) {
-        let r = qualityIndex === 0 ? 3 : 4.5;
+        let r = 3.8;
         let c = '#fff';
-        if (idx === 0) { r = qualityIndex === 0 ? 5.5 : 7; c = '#00E5FF'; }
-        else if ([4,8,12,16,20].indexOf(idx) !== -1) { r = qualityIndex === 0 ? 4.2 : 5.8; c = '#FFD700'; }
-        else if ([5,9,13,17].indexOf(idx) !== -1) { r = qualityIndex === 0 ? 3.8 : 5; c = '#80DEEA'; }
-
+        if (idx === 0) { r = 6; c = '#00E5FF'; }
+        else if ([4,8,12,16,20].indexOf(idx) !== -1) { r = 5; c = '#FFD700'; }
+        else if ([5,9,13,17].indexOf(idx) !== -1) { r = 4.5; c = '#80DEEA'; }
         ctx.beginPath();
         ctx.arc(p.x * w, p.y * h, r, 0, Math.PI * 2);
         ctx.fillStyle = c;
         ctx.fill();
       });
+    }
+
+    function drawOnBoth(landmarksList) {
+      [canvasL, canvasR].forEach(function (c, idx) {
+        const v = idx === 0 ? videoL : videoR;
+        if (c.width !== v.videoWidth || c.height !== v.videoHeight) {
+          c.width = v.videoWidth || currentQuality.w;
+          c.height = v.videoHeight || currentQuality.h;
+        }
+      });
+
+      ctxL.clearRect(0, 0, canvasL.width, canvasL.height);
+      ctxR.clearRect(0, 0, canvasR.width, canvasR.height);
+
+      for (let i = 0; i < landmarksList.length; i++) {
+        const lm = landmarksList[i];
+        if (tipsOnly) {
+          drawTips(ctxL, lm, canvasL.width, canvasL.height);
+          drawTips(ctxR, lm, canvasR.width, canvasR.height);
+        } else {
+          drawFull(ctxL, lm, canvasL.width, canvasL.height);
+          drawFull(ctxR, lm, canvasR.width, canvasR.height);
+        }
+      }
     }
 
     function updateAdaptiveQuality() {
@@ -220,21 +406,23 @@
       frameCount = 0;
       lastFpsTime = now;
 
-      if (fps < 15 && qualityIndex > 0) {
+      if (fps < 12 && qualityIndex > 0) {
         lowFpsStreak++;
         highFpsStreak = 0;
         if (lowFpsStreak >= 2) {
           qualityIndex--;
           currentQuality = QUALITY_LEVELS[qualityIndex];
+          frameSkip = qualityIndex === 0 ? 1 : 0;
           lowFpsStreak = 0;
           applyQuality();
         }
-      } else if (fps > 26 && qualityIndex < 2 && !isWeakDevice) {
+      } else if (fps > 24 && qualityIndex < QUALITY_LEVELS.length - 1) {
         highFpsStreak++;
         lowFpsStreak = 0;
         if (highFpsStreak >= 3) {
           qualityIndex++;
           currentQuality = QUALITY_LEVELS[qualityIndex];
+          frameSkip = qualityIndex === 0 ? 1 : 0;
           highFpsStreak = 0;
           applyQuality();
         }
@@ -252,9 +440,9 @@
       if (hands) {
         hands.setOptions({
           maxNumHands: 2,
-          modelComplexity: currentQuality.complexity,
-          minDetectionConfidence: qualityIndex === 0 ? 0.5 : 0.6,
-          minTrackingConfidence: qualityIndex === 0 ? 0.4 : 0.5
+          modelComplexity: 0,
+          minDetectionConfidence: 0.55,
+          minTrackingConfidence: 0.45
         });
       }
       if (stream) {
@@ -273,34 +461,28 @@
 
     function onResults(results) {
       updateAdaptiveQuality();
-
-      if (canvas.width !== video.videoWidth || canvas.height !== video.videoHeight) {
-        canvas.width = video.videoWidth || currentQuality.w;
-        canvas.height = video.videoHeight || currentQuality.h;
-      }
-
-      // Рисуем в координатах MediaPipe.
-      // CSS scaleX(-1) одинаково переворачивает video и canvas → скелет совпадает с рукой.
-      // Правая рука в жизни = правая сторона экрана.
-      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      frameCounter++;
+      if (frameSkip > 0 && (frameCounter % (frameSkip + 1)) !== 0) return;
 
       const detected = results.multiHandLandmarks || [];
+      const smoothedList = [];
       let anyPinch = false;
 
       for (let i = 0; i < 2; i++) {
         if (i < detected.length) {
           const smoothed = smoothLandmarks(detected[i], i);
-          drawSkeleton(smoothed);
+          smoothedList.push(smoothed);
           if (isPinching(smoothed)) anyPinch = true;
         } else {
           resetSmooth(i);
         }
       }
 
-      // Жест щипок → часы и дата
+      drawOnBoth(smoothedList);
+
       if (anyPinch) {
         pinchFrames++;
-        if (pinchFrames >= 2) {
+        if (pinchFrames >= PINCH_NEED_FRAMES) {
           updateClockText();
           clockEl.classList.add('show');
         }
@@ -310,21 +492,7 @@
       }
     }
 
-    async function start() {
-      hands = new Hands({
-        locateFile: function (file) {
-          return 'https://cdn.jsdelivr.net/npm/@mediapipe/hands/' + file;
-        }
-      });
-
-      hands.setOptions({
-        maxNumHands: 2,
-        modelComplexity: currentQuality.complexity,
-        minDetectionConfidence: 0.6,
-        minTrackingConfidence: 0.5
-      });
-      hands.onResults(onResults);
-
+    async function startCamera() {
       stream = await navigator.mediaDevices.getUserMedia({
         video: {
           facingMode: 'user',
@@ -335,21 +503,52 @@
         audio: false
       });
 
-      video.srcObject = stream;
-      await video.play();
+      // Один поток фронталки на оба экрана
+      videoL.srcObject = stream;
+      videoR.srcObject = stream;
+      await Promise.all([videoL.play(), videoR.play()]);
 
-      camera = new Camera(video, {
+      hands = new Hands({
+        locateFile: function (file) {
+          return 'https://cdn.jsdelivr.net/npm/@mediapipe/hands/' + file;
+        }
+      });
+      hands.setOptions({
+        maxNumHands: 2,
+        modelComplexity: 0,
+        minDetectionConfidence: 0.55,
+        minTrackingConfidence: 0.45
+      });
+      hands.onResults(onResults);
+
+      camera = new Camera(videoL, {
         onFrame: async function () {
-          await hands.send({ image: video });
+          await hands.send({ image: videoL });
         },
         width: currentQuality.w,
         height: currentQuality.h
       });
       camera.start();
+
+      try {
+        if (screen.orientation && screen.orientation.lock) {
+          await screen.orientation.lock('landscape');
+        }
+      } catch (e) {}
     }
 
-    start().catch(function (err) {
-      console.error(err);
+    document.getElementById('btnFull').addEventListener('click', function () {
+      tipsOnly = false;
+      menu.classList.add('hidden');
+      game.classList.add('active');
+      startCamera().catch(function (err) { console.error(err); });
+    });
+
+    document.getElementById('btnTips').addEventListener('click', function () {
+      tipsOnly = true;
+      menu.classList.add('hidden');
+      game.classList.add('active');
+      startCamera().catch(function (err) { console.error(err); });
     });
   </script>
 </body>
