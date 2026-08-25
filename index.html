@@ -20,6 +20,11 @@
       width: 100vw;
       height: 100vh;
     }
+    /*
+      Браузер отдаёт фронталку уже зеркально (selfie).
+      scaleX(-1) отменяет зеркало → твоя ПРАВАЯ рука будет СПРАВА на экране.
+      Canvas тоже переворачивается, поэтому скелет совпадает с рукой.
+    */
     video, canvas {
       position: absolute;
       top: 0;
@@ -27,7 +32,7 @@
       width: 100%;
       height: 100%;
       object-fit: cover;
-      /* НИКАКОГО ЗЕРКАЛА — правая рука справа */
+      transform: scaleX(-1);
     }
     video { z-index: 1; }
     canvas {
@@ -43,23 +48,23 @@
       text-align: center;
       color: #fff;
       font-family: 'Segoe UI', system-ui, sans-serif;
-      text-shadow: 0 0 20px rgba(0,229,255,0.8), 0 4px 12px rgba(0,0,0,0.7);
+      text-shadow: 0 0 24px rgba(0,229,255,0.9), 0 4px 16px rgba(0,0,0,0.8);
       opacity: 0;
-      transition: opacity 0.35s ease;
       pointer-events: none;
+      transition: opacity 0.3s ease;
     }
-    #clock.visible {
+    #clock.show {
       opacity: 1;
     }
     #clock .time {
-      font-size: clamp(2.8rem, 12vw, 5.5rem);
+      font-size: clamp(3rem, 13vw, 6rem);
       font-weight: 700;
-      letter-spacing: 2px;
+      letter-spacing: 3px;
     }
     #clock .date {
-      font-size: clamp(1.1rem, 4.5vw, 1.8rem);
-      margin-top: 8px;
-      opacity: 0.92;
+      font-size: clamp(1.15rem, 4.5vw, 1.9rem);
+      margin-top: 10px;
+      opacity: 0.95;
     }
   </style>
 </head>
@@ -98,12 +103,11 @@
 
     let frameCount = 0;
     let lastFpsTime = performance.now();
-    let currentFps = 30;
     let lowFpsStreak = 0;
     let highFpsStreak = 0;
 
-    // СИЛЬНОЕ сглаживание — почти не трясётся
-    const SMOOTH_ALPHA = isWeakDevice ? 0.18 : 0.22;
+    // Очень сильное сглаживание
+    const SMOOTH_ALPHA = 0.15;
     let smoothedHands = [null, null];
 
     function smoothLandmarks(newLandmarks, handIdx) {
@@ -124,50 +128,47 @@
       smoothedHands[handIdx] = null;
     }
 
-    // Щипок: большой + указательный
-    const PINCH_THRESHOLD = 0.048;
-    let pinchActive = false;
-    let pinchHoldFrames = 0;
+    // Щипок — большой + указательный (мягкий порог)
+    const PINCH_THRESHOLD = 0.075;
+    let pinchFrames = 0;
 
-    function isPinching(landmarks) {
-      const t = landmarks[4];
-      const i = landmarks[8];
-      const dx = t.x - i.x;
-      const dy = t.y - i.y;
+    function isPinching(lm) {
+      const dx = lm[4].x - lm[8].x;
+      const dy = lm[4].y - lm[8].y;
       return Math.sqrt(dx * dx + dy * dy) < PINCH_THRESHOLD;
     }
 
-    function updateClock() {
+    function updateClockText() {
       const now = new Date();
-      const h = String(now.getHours()).padStart(2, '0');
-      const m = String(now.getMinutes()).padStart(2, '0');
-      const s = String(now.getSeconds()).padStart(2, '0');
-      clockTime.textContent = h + ':' + m + ':' + s;
+      const hh = String(now.getHours()).padStart(2, '0');
+      const mm = String(now.getMinutes()).padStart(2, '0');
+      const ss = String(now.getSeconds()).padStart(2, '0');
+      clockTime.textContent = hh + ':' + mm + ':' + ss;
 
       const days = ['Воскресенье','Понедельник','Вторник','Среда','Четверг','Пятница','Суббота'];
       const months = ['января','февраля','марта','апреля','мая','июня','июля','августа','сентября','октября','ноября','декабря'];
       clockDate.textContent = days[now.getDay()] + ', ' + now.getDate() + ' ' + months[now.getMonth()] + ' ' + now.getFullYear();
     }
 
+    setInterval(function () {
+      if (clockEl.classList.contains('show')) updateClockText();
+    }, 1000);
+
     const HAND_CONNECTIONS = [
-      [0, 1], [1, 2], [2, 3], [3, 4],
-      [0, 5], [5, 6], [6, 7], [7, 8],
-      [0, 9], [9, 10], [10, 11], [11, 12],
-      [0, 13], [13, 14], [14, 15], [15, 16],
-      [0, 17], [17, 18], [18, 19], [19, 20],
-      [5, 9], [9, 13], [13, 17]
+      [0,1],[1,2],[2,3],[3,4],
+      [0,5],[5,6],[6,7],[7,8],
+      [0,9],[9,10],[10,11],[11,12],
+      [0,13],[13,14],[14,15],[15,16],
+      [0,17],[17,18],[18,19],[19,20],
+      [5,9],[9,13],[13,17]
     ];
 
     const FINGER_COLORS = {
-      thumb:  '#FF6B6B',
-      index:  '#4ECDC4',
-      middle: '#FFE66D',
-      ring:   '#95E1D3',
-      pinky:  '#F38181',
-      palm:   '#A8DADC'
+      thumb: '#FF6B6B', index: '#4ECDC4', middle: '#FFE66D',
+      ring: '#95E1D3', pinky: '#F38181', palm: '#A8DADC'
     };
 
-    function getConnectionColor(i, j) {
+    function getColor(i, j) {
       if (i <= 4 || j <= 4) return FINGER_COLORS.thumb;
       if ((i >= 5 && i <= 8) || (j >= 5 && j <= 8)) return FINGER_COLORS.index;
       if ((i >= 9 && i <= 12) || (j >= 9 && j <= 12)) return FINGER_COLORS.middle;
@@ -176,40 +177,37 @@
       return FINGER_COLORS.palm;
     }
 
-    function drawSkeleton(landmarks) {
+    function drawSkeleton(lm) {
       const w = canvas.width;
       const h = canvas.height;
 
-      const px = landmarks[0].x * w;
-      const py = landmarks[0].y * h;
       ctx.beginPath();
-      ctx.arc(px, py, qualityIndex === 0 ? 28 : 50, 0, Math.PI * 2);
-      ctx.fillStyle = 'rgba(0, 229, 255, 0.14)';
+      ctx.arc(lm[0].x * w, lm[0].y * h, qualityIndex === 0 ? 26 : 48, 0, Math.PI * 2);
+      ctx.fillStyle = 'rgba(0,229,255,0.15)';
       ctx.fill();
 
-      const lineW = qualityIndex === 0 ? 3 : 4;
-      HAND_CONNECTIONS.forEach(([i, j]) => {
+      const lw = qualityIndex === 0 ? 3 : 4;
+      HAND_CONNECTIONS.forEach(function (pair) {
+        const a = pair[0], b = pair[1];
         ctx.beginPath();
-        ctx.moveTo(landmarks[i].x * w, landmarks[i].y * h);
-        ctx.lineTo(landmarks[j].x * w, landmarks[j].y * h);
-        ctx.strokeStyle = getConnectionColor(i, j);
-        ctx.lineWidth = lineW;
+        ctx.moveTo(lm[a].x * w, lm[a].y * h);
+        ctx.lineTo(lm[b].x * w, lm[b].y * h);
+        ctx.strokeStyle = getColor(a, b);
+        ctx.lineWidth = lw;
         ctx.lineCap = 'round';
         ctx.stroke();
       });
 
-      landmarks.forEach((lm, idx) => {
-        const x = lm.x * w;
-        const y = lm.y * h;
-        let r = qualityIndex === 0 ? 3.2 : 4.8;
-        let color = '#FFFFFF';
-        if (idx === 0) { r = qualityIndex === 0 ? 5.5 : 7.5; color = '#00E5FF'; }
-        else if ([4, 8, 12, 16, 20].includes(idx)) { r = qualityIndex === 0 ? 4.5 : 6; color = '#FFD700'; }
-        else if ([5, 9, 13, 17].includes(idx)) { r = qualityIndex === 0 ? 4 : 5.2; color = '#80DEEA'; }
+      lm.forEach(function (p, idx) {
+        let r = qualityIndex === 0 ? 3 : 4.5;
+        let c = '#fff';
+        if (idx === 0) { r = qualityIndex === 0 ? 5.5 : 7; c = '#00E5FF'; }
+        else if ([4,8,12,16,20].indexOf(idx) !== -1) { r = qualityIndex === 0 ? 4.2 : 5.8; c = '#FFD700'; }
+        else if ([5,9,13,17].indexOf(idx) !== -1) { r = qualityIndex === 0 ? 3.8 : 5; c = '#80DEEA'; }
 
         ctx.beginPath();
-        ctx.arc(x, y, r, 0, Math.PI * 2);
-        ctx.fillStyle = color;
+        ctx.arc(p.x * w, p.y * h, r, 0, Math.PI * 2);
+        ctx.fillStyle = c;
         ctx.fill();
       });
     }
@@ -218,11 +216,11 @@
       frameCount++;
       const now = performance.now();
       if (now - lastFpsTime < 1000) return;
-      currentFps = frameCount;
+      const fps = frameCount;
       frameCount = 0;
       lastFpsTime = now;
 
-      if (currentFps < 15 && qualityIndex > 0) {
+      if (fps < 15 && qualityIndex > 0) {
         lowFpsStreak++;
         highFpsStreak = 0;
         if (lowFpsStreak >= 2) {
@@ -231,7 +229,7 @@
           lowFpsStreak = 0;
           applyQuality();
         }
-      } else if (currentFps > 26 && qualityIndex < QUALITY_LEVELS.length - 1 && !isWeakDevice) {
+      } else if (fps > 26 && qualityIndex < 2 && !isWeakDevice) {
         highFpsStreak++;
         lowFpsStreak = 0;
         if (highFpsStreak >= 3) {
@@ -255,8 +253,8 @@
         hands.setOptions({
           maxNumHands: 2,
           modelComplexity: currentQuality.complexity,
-          minDetectionConfidence: qualityIndex === 0 ? 0.55 : 0.65,
-          minTrackingConfidence: qualityIndex === 0 ? 0.45 : 0.55
+          minDetectionConfidence: qualityIndex === 0 ? 0.5 : 0.6,
+          minTrackingConfidence: qualityIndex === 0 ? 0.4 : 0.5
         });
       }
       if (stream) {
@@ -264,7 +262,7 @@
         if (track) {
           try {
             await track.applyConstraints({
-              width:  { ideal: currentQuality.w, max: currentQuality.w },
+              width: { ideal: currentQuality.w, max: currentQuality.w },
               height: { ideal: currentQuality.h, max: currentQuality.h },
               frameRate: { ideal: currentQuality.fps, max: currentQuality.fps }
             });
@@ -281,6 +279,9 @@
         canvas.height = video.videoHeight || currentQuality.h;
       }
 
+      // Рисуем в координатах MediaPipe.
+      // CSS scaleX(-1) одинаково переворачивает video и canvas → скелет совпадает с рукой.
+      // Правая рука в жизни = правая сторона экрана.
       ctx.clearRect(0, 0, canvas.width, canvas.height);
 
       const detected = results.multiHandLandmarks || [];
@@ -296,39 +297,38 @@
         }
       }
 
+      // Жест щипок → часы и дата
       if (anyPinch) {
-        pinchHoldFrames++;
-        if (pinchHoldFrames >= 3) {
-          updateClock();
-          clockEl.classList.add('visible');
-          pinchActive = true;
+        pinchFrames++;
+        if (pinchFrames >= 2) {
+          updateClockText();
+          clockEl.classList.add('show');
         }
       } else {
-        pinchHoldFrames = 0;
-        if (pinchActive) {
-          clockEl.classList.remove('visible');
-          pinchActive = false;
-        }
+        pinchFrames = 0;
+        clockEl.classList.remove('show');
       }
     }
 
     async function start() {
       hands = new Hands({
-        locateFile: (file) => 'https://cdn.jsdelivr.net/npm/@mediapipe/hands/' + file
+        locateFile: function (file) {
+          return 'https://cdn.jsdelivr.net/npm/@mediapipe/hands/' + file;
+        }
       });
 
       hands.setOptions({
         maxNumHands: 2,
         modelComplexity: currentQuality.complexity,
-        minDetectionConfidence: 0.65,
-        minTrackingConfidence: 0.55
+        minDetectionConfidence: 0.6,
+        minTrackingConfidence: 0.5
       });
       hands.onResults(onResults);
 
       stream = await navigator.mediaDevices.getUserMedia({
         video: {
           facingMode: 'user',
-          width:  { ideal: currentQuality.w, max: currentQuality.w },
+          width: { ideal: currentQuality.w, max: currentQuality.w },
           height: { ideal: currentQuality.h, max: currentQuality.h },
           frameRate: { ideal: currentQuality.fps, max: currentQuality.fps }
         },
@@ -339,7 +339,7 @@
       await video.play();
 
       camera = new Camera(video, {
-        onFrame: async () => {
+        onFrame: async function () {
           await hands.send({ image: video });
         },
         width: currentQuality.w,
@@ -348,7 +348,9 @@
       camera.start();
     }
 
-    start().catch(err => console.error(err));
+    start().catch(function (err) {
+      console.error(err);
+    });
   </script>
 </body>
 </html>
