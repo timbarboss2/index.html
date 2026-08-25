@@ -27,11 +27,39 @@
       width: 100%;
       height: 100%;
       object-fit: cover;
+      /* НИКАКОГО ЗЕРКАЛА — правая рука справа */
     }
     video { z-index: 1; }
     canvas {
       z-index: 2;
       pointer-events: none;
+    }
+    #clock {
+      position: fixed;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      z-index: 30;
+      text-align: center;
+      color: #fff;
+      font-family: 'Segoe UI', system-ui, sans-serif;
+      text-shadow: 0 0 20px rgba(0,229,255,0.8), 0 4px 12px rgba(0,0,0,0.7);
+      opacity: 0;
+      transition: opacity 0.35s ease;
+      pointer-events: none;
+    }
+    #clock.visible {
+      opacity: 1;
+    }
+    #clock .time {
+      font-size: clamp(2.8rem, 12vw, 5.5rem);
+      font-weight: 700;
+      letter-spacing: 2px;
+    }
+    #clock .date {
+      font-size: clamp(1.1rem, 4.5vw, 1.8rem);
+      margin-top: 8px;
+      opacity: 0.92;
     }
   </style>
 </head>
@@ -40,13 +68,19 @@
     <video id="video" playsinline autoplay muted></video>
     <canvas id="canvas"></canvas>
   </div>
+  <div id="clock">
+    <div class="time" id="clockTime">00:00:00</div>
+    <div class="date" id="clockDate">—</div>
+  </div>
 
   <script>
     const video = document.getElementById('video');
     const canvas = document.getElementById('canvas');
     const ctx = canvas.getContext('2d');
+    const clockEl = document.getElementById('clock');
+    const clockTime = document.getElementById('clockTime');
+    const clockDate = document.getElementById('clockDate');
 
-    // ===== Определение слабого устройства =====
     const isWeakDevice = (() => {
       const cores = navigator.hardwareConcurrency || 2;
       const memory = navigator.deviceMemory || 2;
@@ -54,52 +88,67 @@
       return isMobile && (cores <= 4 || memory <= 3);
     })();
 
-    // ===== Уровни качества (адаптивные) =====
     const QUALITY_LEVELS = [
-      { w: 480, h: 360, complexity: 0, fps: 20 }, // 0 — самый лёгкий
-      { w: 640, h: 480, complexity: 0, fps: 24 }, // 1
-      { w: 960, h: 720, complexity: 1, fps: 30 }  // 2 — максимальный
+      { w: 480, h: 360, complexity: 0, fps: 20 },
+      { w: 640, h: 480, complexity: 0, fps: 24 },
+      { w: 960, h: 720, complexity: 1, fps: 30 }
     ];
-
     let qualityIndex = isWeakDevice ? 1 : 2;
     let currentQuality = QUALITY_LEVELS[qualityIndex];
 
-    // ===== FPS для адаптации =====
     let frameCount = 0;
     let lastFpsTime = performance.now();
     let currentFps = 30;
     let lowFpsStreak = 0;
     let highFpsStreak = 0;
 
-    // ===== Сглаживание landmarks (EMA) =====
-    // alpha ближе к 1 = меньше сглаживания (быстрее реакция)
-    // alpha ближе к 0 = сильнее сглаживание (меньше дрожи)
-    const SMOOTH_ALPHA = isWeakDevice ? 0.45 : 0.55;
-    // Храним сглаженные точки для каждой руки (до 2 рук)
+    // СИЛЬНОЕ сглаживание — почти не трясётся
+    const SMOOTH_ALPHA = isWeakDevice ? 0.18 : 0.22;
     let smoothedHands = [null, null];
 
     function smoothLandmarks(newLandmarks, handIdx) {
       if (!smoothedHands[handIdx]) {
-        // Первый кадр — просто копируем
-        smoothedHands[handIdx] = newLandmarks.map(p => ({ x: p.x, y: p.y, z: p.z }));
+        smoothedHands[handIdx] = newLandmarks.map(p => ({ x: p.x, y: p.y, z: p.z || 0 }));
         return smoothedHands[handIdx];
       }
-
       const prev = smoothedHands[handIdx];
       for (let i = 0; i < newLandmarks.length; i++) {
         prev[i].x = SMOOTH_ALPHA * newLandmarks[i].x + (1 - SMOOTH_ALPHA) * prev[i].x;
         prev[i].y = SMOOTH_ALPHA * newLandmarks[i].y + (1 - SMOOTH_ALPHA) * prev[i].y;
-        prev[i].z = SMOOTH_ALPHA * newLandmarks[i].z + (1 - SMOOTH_ALPHA) * prev[i].z;
+        prev[i].z = SMOOTH_ALPHA * (newLandmarks[i].z || 0) + (1 - SMOOTH_ALPHA) * prev[i].z;
       }
       return prev;
     }
 
-    // Сброс сглаживания, если рука пропала
     function resetSmooth(handIdx) {
       smoothedHands[handIdx] = null;
     }
 
-    // ===== Соединения и цвета =====
+    // Щипок: большой + указательный
+    const PINCH_THRESHOLD = 0.048;
+    let pinchActive = false;
+    let pinchHoldFrames = 0;
+
+    function isPinching(landmarks) {
+      const t = landmarks[4];
+      const i = landmarks[8];
+      const dx = t.x - i.x;
+      const dy = t.y - i.y;
+      return Math.sqrt(dx * dx + dy * dy) < PINCH_THRESHOLD;
+    }
+
+    function updateClock() {
+      const now = new Date();
+      const h = String(now.getHours()).padStart(2, '0');
+      const m = String(now.getMinutes()).padStart(2, '0');
+      const s = String(now.getSeconds()).padStart(2, '0');
+      clockTime.textContent = h + ':' + m + ':' + s;
+
+      const days = ['Воскресенье','Понедельник','Вторник','Среда','Четверг','Пятница','Суббота'];
+      const months = ['января','февраля','марта','апреля','мая','июня','июля','августа','сентября','октября','ноября','декабря'];
+      clockDate.textContent = days[now.getDay()] + ', ' + now.getDate() + ' ' + months[now.getMonth()] + ' ' + now.getFullYear();
+    }
+
     const HAND_CONNECTIONS = [
       [0, 1], [1, 2], [2, 3], [3, 4],
       [0, 5], [5, 6], [6, 7], [7, 8],
@@ -131,41 +180,32 @@
       const w = canvas.width;
       const h = canvas.height;
 
-      // Свечение ладони
       const px = landmarks[0].x * w;
       const py = landmarks[0].y * h;
       ctx.beginPath();
-      ctx.arc(px, py, qualityIndex === 0 ? 30 : 55, 0, Math.PI * 2);
-      ctx.fillStyle = 'rgba(0, 229, 255, 0.16)';
+      ctx.arc(px, py, qualityIndex === 0 ? 28 : 50, 0, Math.PI * 2);
+      ctx.fillStyle = 'rgba(0, 229, 255, 0.14)';
       ctx.fill();
 
-      // Кости
-      const lineW = qualityIndex === 0 ? 3 : 4.2;
+      const lineW = qualityIndex === 0 ? 3 : 4;
       HAND_CONNECTIONS.forEach(([i, j]) => {
-        const x1 = landmarks[i].x * w;
-        const y1 = landmarks[i].y * h;
-        const x2 = landmarks[j].x * w;
-        const y2 = landmarks[j].y * h;
-
         ctx.beginPath();
-        ctx.moveTo(x1, y1);
-        ctx.lineTo(x2, y2);
+        ctx.moveTo(landmarks[i].x * w, landmarks[i].y * h);
+        ctx.lineTo(landmarks[j].x * w, landmarks[j].y * h);
         ctx.strokeStyle = getConnectionColor(i, j);
         ctx.lineWidth = lineW;
         ctx.lineCap = 'round';
         ctx.stroke();
       });
 
-      // Суставы
       landmarks.forEach((lm, idx) => {
         const x = lm.x * w;
         const y = lm.y * h;
-        let r = qualityIndex === 0 ? 3.5 : 5;
+        let r = qualityIndex === 0 ? 3.2 : 4.8;
         let color = '#FFFFFF';
-
-        if (idx === 0) { r = qualityIndex === 0 ? 6 : 8; color = '#00E5FF'; }
-        else if ([4, 8, 12, 16, 20].includes(idx)) { r = qualityIndex === 0 ? 5 : 6.5; color = '#FFD700'; }
-        else if ([5, 9, 13, 17].includes(idx)) { r = qualityIndex === 0 ? 4.5 : 5.5; color = '#80DEEA'; }
+        if (idx === 0) { r = qualityIndex === 0 ? 5.5 : 7.5; color = '#00E5FF'; }
+        else if ([4, 8, 12, 16, 20].includes(idx)) { r = qualityIndex === 0 ? 4.5 : 6; color = '#FFD700'; }
+        else if ([5, 9, 13, 17].includes(idx)) { r = qualityIndex === 0 ? 4 : 5.2; color = '#80DEEA'; }
 
         ctx.beginPath();
         ctx.arc(x, y, r, 0, Math.PI * 2);
@@ -174,29 +214,24 @@
       });
     }
 
-    // ===== Адаптивное качество =====
     function updateAdaptiveQuality() {
       frameCount++;
       const now = performance.now();
       if (now - lastFpsTime < 1000) return;
-
       currentFps = frameCount;
       frameCount = 0;
       lastFpsTime = now;
 
-      // Если FPS низкий — понижаем качество
       if (currentFps < 15 && qualityIndex > 0) {
         lowFpsStreak++;
         highFpsStreak = 0;
-        if (lowFpsStreak >= 2) { // 2 секунды подряд низкий FPS
+        if (lowFpsStreak >= 2) {
           qualityIndex--;
           currentQuality = QUALITY_LEVELS[qualityIndex];
           lowFpsStreak = 0;
           applyQuality();
         }
-      }
-      // Если FPS высокий — можем повысить
-      else if (currentFps > 26 && qualityIndex < QUALITY_LEVELS.length - 1 && !isWeakDevice) {
+      } else if (currentFps > 26 && qualityIndex < QUALITY_LEVELS.length - 1 && !isWeakDevice) {
         highFpsStreak++;
         lowFpsStreak = 0;
         if (highFpsStreak >= 3) {
@@ -216,7 +251,6 @@
     let stream = null;
 
     async function applyQuality() {
-      // Меняем настройки модели
       if (hands) {
         hands.setOptions({
           maxNumHands: 2,
@@ -225,8 +259,6 @@
           minTrackingConfidence: qualityIndex === 0 ? 0.45 : 0.55
         });
       }
-
-      // Перезапускаем камеру с новым разрешением (если поток уже есть)
       if (stream) {
         const track = stream.getVideoTracks()[0];
         if (track) {
@@ -236,9 +268,7 @@
               height: { ideal: currentQuality.h, max: currentQuality.h },
               frameRate: { ideal: currentQuality.fps, max: currentQuality.fps }
             });
-          } catch (e) {
-            // Некоторые браузеры не любят applyConstraints — игнорируем
-          }
+          } catch (e) {}
         }
       }
     }
@@ -254,21 +284,37 @@
       ctx.clearRect(0, 0, canvas.width, canvas.height);
 
       const detected = results.multiHandLandmarks || [];
+      let anyPinch = false;
 
-      // Сглаживаем и рисуем
       for (let i = 0; i < 2; i++) {
         if (i < detected.length) {
           const smoothed = smoothLandmarks(detected[i], i);
           drawSkeleton(smoothed);
+          if (isPinching(smoothed)) anyPinch = true;
         } else {
           resetSmooth(i);
+        }
+      }
+
+      if (anyPinch) {
+        pinchHoldFrames++;
+        if (pinchHoldFrames >= 3) {
+          updateClock();
+          clockEl.classList.add('visible');
+          pinchActive = true;
+        }
+      } else {
+        pinchHoldFrames = 0;
+        if (pinchActive) {
+          clockEl.classList.remove('visible');
+          pinchActive = false;
         }
       }
     }
 
     async function start() {
       hands = new Hands({
-        locateFile: (file) => `https://cdn.jsdelivr.net/npm/@mediapipe/hands/${file}`
+        locateFile: (file) => 'https://cdn.jsdelivr.net/npm/@mediapipe/hands/' + file
       });
 
       hands.setOptions({
