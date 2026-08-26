@@ -10,8 +10,9 @@
     * { margin: 0; padding: 0; box-sizing: border-box; }
     html, body {
       width: 100%; height: 100%; overflow: hidden;
-      background: #000; font-family: 'Segoe UI', system-ui, sans-serif; color: #fff;
+      background: #05070c; font-family: 'Segoe UI', system-ui, sans-serif; color: #fff;
     }
+
     #rotate-hint {
       display: none; position: fixed; inset: 0; z-index: 300;
       background: #0b0f1a; flex-direction: column; align-items: center;
@@ -28,21 +29,10 @@
       position: fixed; inset: 0; z-index: 100;
       display: flex; flex-direction: column; align-items: center; justify-content: center;
       background: radial-gradient(ellipse at center, #152238 0%, #0a0e18 70%);
-      gap: 12px; padding: 20px;
+      gap: 14px; padding: 20px;
     }
     #startMenu h1 { font-size: clamp(1.3rem, 4vw, 1.9rem); font-weight: 600; }
-    #startMenu .sub { opacity: 0.65; font-size: 0.9rem; margin-bottom: 6px; text-align: center; }
-    .row { display: flex; gap: 10px; flex-wrap: wrap; justify-content: center; margin-bottom: 8px; }
-    .chip {
-      padding: 10px 18px; border-radius: 20px; cursor: pointer;
-      border: 1px solid rgba(120,180,255,0.35);
-      background: rgba(30,50,80,0.45); color: #fff; font-size: 0.9rem;
-    }
-    .chip.on {
-      border-color: #5BBEFF;
-      background: rgba(40,100,180,0.55);
-      box-shadow: 0 0 16px rgba(80,180,255,0.35);
-    }
+    #startMenu .sub { opacity: 0.65; font-size: 0.9rem; margin-bottom: 6px; text-align: center; max-width: 320px; }
     .mode-btn {
       width: min(300px, 75vw); padding: 14px 20px;
       border: 1px solid rgba(120,180,255,0.35);
@@ -58,27 +48,35 @@
       min-height: 1.2em; margin-top: 8px;
     }
 
+    /* Одна камера на весь экран */
     #game {
-      position: fixed; inset: 0; display: none; flex-direction: row;
+      position: fixed; inset: 0; display: none;
       width: 100vw; height: 100vh;
+      background: #05070c;
     }
-    #game.active { display: flex; }
-    .cam-panel {
-      position: relative; width: 50%; height: 100%; overflow: hidden;
-      border-right: 1px solid rgba(100,160,255,0.25);
+    #game.active { display: block; }
+
+    #video {
+      position: absolute; inset: 0;
+      width: 100%; height: 100%;
+      object-fit: cover;
+      /* Живая рука скрыта — обводка руки как в Quest */
+      opacity: 0;
+      pointer-events: none;
     }
-    .cam-panel:last-child { border-right: none; }
-    .cam-panel video, .cam-panel canvas {
-      position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover;
+    #canvas {
+      position: absolute; inset: 0;
+      width: 100%; height: 100%;
+      object-fit: cover;
+      z-index: 70;
+      pointer-events: none;
+      transform: scaleX(-1);
     }
-    .cam-panel.mirror video, .cam-panel.mirror canvas { transform: scaleX(-1); }
-    .cam-panel video { z-index: 1; }
-    .cam-panel canvas { z-index: 2; pointer-events: none; }
 
     #status {
-      position: fixed; top: 10px; left: 50%; transform: translateX(-50%);
-      z-index: 40; padding: 6px 14px; border-radius: 16px;
-      background: rgba(0,0,0,0.6); font-size: 0.8rem;
+      position: fixed; top: 12px; left: 50%; transform: translateX(-50%);
+      z-index: 90; padding: 6px 14px; border-radius: 16px;
+      background: rgba(0,0,0,0.55); font-size: 0.8rem;
       border: 1px solid rgba(120,180,255,0.25);
       pointer-events: none; white-space: nowrap;
     }
@@ -88,36 +86,40 @@
       border: 2px solid rgba(100,200,255,0.95);
       background: rgba(80,180,255,0.25);
       box-shadow: 0 0 16px rgba(80,180,255,0.6);
-      z-index: 80; pointer-events: none; display: none;
+      z-index: 95; pointer-events: none; display: none;
       transform: translate(-50%, -50%);
     }
     #cursor.on { display: block; }
 
+    /* Меню поверх камеры, скелет поверх меню */
     #questMenu {
-      position: fixed; inset: 0; z-index: 60;
+      position: fixed; inset: 0; z-index: 50;
       display: none; align-items: center; justify-content: center;
-      background: rgba(5, 10, 20, 0.55); backdrop-filter: blur(18px);
+      background: rgba(5, 10, 20, 0.72);
+      backdrop-filter: blur(16px);
     }
     #questMenu.open { display: flex; }
     .quest-panel {
       padding: 36px 48px 28px; border-radius: 28px;
-      background: linear-gradient(160deg, rgba(40,55,90,0.55), rgba(20,30,55,0.65));
+      background: linear-gradient(160deg, rgba(40,55,90,0.7), rgba(20,30,55,0.8));
       border: 1px solid rgba(140,180,255,0.28);
       box-shadow: 0 20px 60px rgba(0,0,0,0.45), 0 0 40px rgba(60,120,255,0.12);
       display: flex; flex-direction: column; align-items: center; gap: 28px;
       min-width: min(420px, 90vw);
     }
-    .quest-title { font-size: 1.05rem; letter-spacing: 2px; text-transform: uppercase; opacity: 0.85; }
+    .quest-title {
+      font-size: 1.05rem; letter-spacing: 2px; text-transform: uppercase; opacity: 0.85;
+    }
     .quest-icons { display: flex; gap: 36px; }
     .q-icon {
       width: 100px; height: 100px; border-radius: 50%;
-      background: linear-gradient(145deg, rgba(50,70,110,0.7), rgba(25,40,70,0.8));
+      background: linear-gradient(145deg, rgba(50,70,110,0.75), rgba(25,40,70,0.85));
       border: 2px solid rgba(130,180,255,0.35);
       display: flex; flex-direction: column; align-items: center; justify-content: center;
       position: relative;
       transition: transform 0.2s, border-color 0.2s, box-shadow 0.2s;
     }
-    .q-icon .emoji { font-size: 2.4rem; }
+    .q-icon .emoji { font-size: 2.4rem; line-height: 1; }
     .q-icon .q-label {
       position: absolute; bottom: -28px; left: 50%; transform: translateX(-50%);
       font-size: 0.8rem; white-space: nowrap; opacity: 0.85;
@@ -131,12 +133,14 @@
       position: absolute; inset: -5px; width: calc(100% + 10px); height: calc(100% + 10px);
       pointer-events: none;
     }
-    .quest-hint { margin-top: 18px; font-size: 0.78rem; opacity: 0.55; text-align: center; line-height: 1.4; }
+    .quest-hint {
+      margin-top: 18px; font-size: 0.78rem; opacity: 0.55; text-align: center; line-height: 1.4;
+    }
 
     #clockView {
-      position: fixed; inset: 0; z-index: 70;
+      position: fixed; inset: 0; z-index: 55;
       display: none; flex-direction: column; align-items: center; justify-content: center;
-      background: rgba(5,10,20,0.7); backdrop-filter: blur(16px); gap: 10px;
+      background: rgba(5,10,20,0.78); backdrop-filter: blur(14px); gap: 10px;
     }
     #clockView.open { display: flex; }
     #clockView .time {
@@ -147,7 +151,7 @@
     #clockView .hint { margin-top: 28px; font-size: 0.8rem; opacity: 0.5; }
 
     #browserView {
-      position: fixed; inset: 0; z-index: 70;
+      position: fixed; inset: 0; z-index: 55;
       display: none; flex-direction: column; background: #0b0f1a;
     }
     #browserView.open { display: flex; }
@@ -167,7 +171,10 @@
       color: #fff; font-size: 0.9rem; cursor: pointer; white-space: nowrap;
     }
     #browserFrame { flex: 1; width: 100%; border: none; background: #fff; }
-    .browser-hint { padding: 6px; font-size: 0.72rem; opacity: 0.55; text-align: center; background: rgba(0,0,0,0.35); }
+    .browser-hint {
+      padding: 6px; font-size: 0.72rem; opacity: 0.55; text-align: center;
+      background: rgba(0,0,0,0.35);
+    }
   </style>
 </head>
 <body>
@@ -177,20 +184,14 @@
   </div>
 
   <div id="startMenu">
-    <h1>❄️ Hand Tracking</h1>
-    <p class="sub">Сначала выбери камеру, потом режим</p>
-
-    <div class="row">
-      <button class="chip on" id="camFront" type="button">🤳 Фронтальная</button>
-      <button class="chip" id="camBack" type="button">📷 Задняя</button>
-    </div>
-
+    <h1>Hand Tracking</h1>
+    <p class="sub">Одна камера · рука скрыта · обводка руки как в Quest · меню жестами</p>
     <button class="mode-btn" id="btnFull" type="button">
-      <strong>🖐 Полный скелет</strong>
-      <span>Все суставы руки</span>
+      <strong>Обводка руки</strong>
+      <span>Силуэт как в Meta Quest 3</span>
     </button>
     <button class="mode-btn" id="btnTips" type="button">
-      <strong>👆 Только кончики</strong>
+      <strong>Только кончики</strong>
       <span>Быстрее на слабых телефонах</span>
     </button>
     <div id="startError"></div>
@@ -199,18 +200,14 @@
   <div id="status">—</div>
 
   <div id="game">
-    <div class="cam-panel" id="panelL">
-      <video id="videoL" playsinline autoplay muted></video>
-      <canvas id="canvasL"></canvas>
-    </div>
-    <div class="cam-panel" id="panelR">
-      <video id="videoR" playsinline autoplay muted></video>
-      <canvas id="canvasR"></canvas>
-    </div>
+    <!-- Видео скрыто (opacity:0), трекинг идёт, видна только обводка руки -->
+    <video id="video" playsinline autoplay muted></video>
+    <canvas id="canvas"></canvas>
   </div>
 
   <div id="cursor"></div>
 
+  <!-- Меню на камере; скелет рисуется поверх (z-index canvas выше) -->
   <div id="questMenu">
     <div class="quest-panel">
       <div class="quest-title">Меню</div>
@@ -250,12 +247,9 @@
   </div>
 
   <script>
-    const videoL = document.getElementById('videoL');
-    const videoR = document.getElementById('videoR');
-    const canvasL = document.getElementById('canvasL');
-    const canvasR = document.getElementById('canvasR');
-    const ctxL = canvasL.getContext('2d');
-    const ctxR = canvasR.getContext('2d');
+    const video = document.getElementById('video');
+    const canvas = document.getElementById('canvas');
+    const ctx = canvas.getContext('2d');
     const startMenu = document.getElementById('startMenu');
     const startError = document.getElementById('startError');
     const game = document.getElementById('game');
@@ -266,16 +260,13 @@
     const cursor = document.getElementById('cursor');
     const iconClock = document.getElementById('iconClock');
     const iconBrowser = document.getElementById('iconBrowser');
-    const panelL = document.getElementById('panelL');
-    const panelR = document.getElementById('panelR');
     const searchInput = document.getElementById('searchInput');
     const browserFrame = document.getElementById('browserFrame');
 
     let tipsOnly = false;
     let running = false;
-    let useFront = true; // фронт по умолчанию — руки видно
-    let mirror = true;
-    let ui = 'game';
+    // live | menu | clock | browser
+    let ui = 'live';
 
     const TIP_IDX = [4, 8, 12, 16, 20];
     const TIP_COL = ['#FF6B6B', '#4ECDC4', '#FFE66D', '#95E1D3', '#F38181'];
@@ -288,57 +279,28 @@
     const W = isWeak ? 480 : 640;
     const H = isWeak ? 360 : 480;
 
-    document.getElementById('camFront').onclick = () => {
-      useFront = true;
-      document.getElementById('camFront').classList.add('on');
-      document.getElementById('camBack').classList.remove('on');
-    };
-    document.getElementById('camBack').onclick = () => {
-      useFront = false;
-      document.getElementById('camBack').classList.add('on');
-      document.getElementById('camFront').classList.remove('on');
-    };
-
     function setStatus(t) { statusEl.textContent = t; }
 
-    // One-Euro smoothing
-    const MIN_CUTOFF = 0.9, BETA = 0.45, D_CUTOFF = 1.0;
+    // Быстрое сглаживание с минимальной задержкой
+    const SMOOTH = 0.72;
     let smoothState = [null, null];
-    function alpha(cutoff, dt) {
-      const tau = 1 / (2 * Math.PI * cutoff);
-      return 1 / (1 + tau / dt);
-    }
+
     function smoothHand(lm, handIdx) {
-      const now = performance.now() / 1000;
       if (!smoothState[handIdx]) {
-        smoothState[handIdx] = lm.map(p => ({
-          x: p.x, y: p.y, z: p.z || 0, dx: 0, dy: 0, dz: 0, ts: now
-        }));
-        return smoothState[handIdx].map(s => ({ x: s.x, y: s.y, z: s.z }));
+        smoothState[handIdx] = lm.map(p => ({ x: p.x, y: p.y, z: p.z || 0 }));
+        return smoothState[handIdx];
       }
-      const st = smoothState[handIdx];
-      const out = [];
+      const prev = smoothState[handIdx];
       for (let i = 0; i < lm.length; i++) {
-        const s = st[i];
-        let dt = now - s.ts;
-        if (dt <= 0 || dt > 0.5) dt = 1 / 30;
-        s.ts = now;
-        const nx = lm[i].x, ny = lm[i].y, nz = lm[i].z || 0;
-        const axd = alpha(D_CUTOFF, dt);
-        s.dx = axd * ((nx - s.x) / dt) + (1 - axd) * s.dx;
-        s.dy = axd * ((ny - s.y) / dt) + (1 - axd) * s.dy;
-        const speed = Math.sqrt(s.dx * s.dx + s.dy * s.dy);
-        const a = alpha(MIN_CUTOFF + BETA * speed, dt);
-        s.x = a * nx + (1 - a) * s.x;
-        s.y = a * ny + (1 - a) * s.y;
-        s.z = a * nz + (1 - a) * s.z;
-        out.push({ x: s.x, y: s.y, z: s.z });
+        prev[i].x = SMOOTH * lm[i].x + (1 - SMOOTH) * prev[i].x;
+        prev[i].y = SMOOTH * lm[i].y + (1 - SMOOTH) * prev[i].y;
+        prev[i].z = SMOOTH * (lm[i].z || 0) + (1 - SMOOTH) * prev[i].z;
       }
-      return out;
+      return prev;
     }
     function resetSmooth(i) { smoothState[i] = null; }
 
-    // Pinch
+    // Щипок
     let wasPinch = false, lastPinchUp = 0, pinchClicks = 0;
     function handSpan(lm) {
       const dx = lm[0].x - lm[12].x, dy = lm[0].y - lm[12].y;
@@ -362,7 +324,7 @@
       }
     }
     function doublePinch() {
-      if (ui === 'game') openMenu();
+      if (ui === 'live') openMenu();
       else if (ui === 'menu') closeMenu();
       else if (ui === 'clock') { clockView.classList.remove('open'); openMenu(); }
       else if (ui === 'browser') { browserView.classList.remove('open'); openMenu(); }
@@ -377,7 +339,7 @@
       resetDwell();
     }
     function closeMenu() {
-      ui = 'game';
+      ui = 'live';
       questMenu.classList.remove('open');
       cursor.classList.remove('on');
       resetDwell();
@@ -404,7 +366,8 @@
     function tickClock() {
       const n = new Date();
       const p = v => String(v).padStart(2, '0');
-      document.getElementById('cvTime').textContent = p(n.getHours()) + ':' + p(n.getMinutes()) + ':' + p(n.getSeconds());
+      document.getElementById('cvTime').textContent =
+        p(n.getHours()) + ':' + p(n.getMinutes()) + ':' + p(n.getSeconds());
       const days = ['Воскресенье','Понедельник','Вторник','Среда','Четверг','Пятница','Суббота'];
       const months = ['января','февраля','марта','апреля','мая','июня','июля','августа','сентября','октября','ноября','декабря'];
       document.getElementById('cvDate').textContent =
@@ -412,6 +375,7 @@
     }
     setInterval(() => { if (ui === 'clock') tickClock(); }, 1000);
 
+    // Dwell 3 сек
     const DWELL = 3000;
     let dwellId = null, dwellT0 = 0;
     function resetDwell() {
@@ -422,11 +386,11 @@
     function drawRing(el, ratio) {
       const c = el.querySelector('.prog');
       const g = c.getContext('2d');
-      const s = c.width, cx = s/2, cy = s/2, r = s/2 - 4;
+      const s = c.width, cx = s / 2, cy = s / 2, r = s / 2 - 4;
       g.clearRect(0, 0, s, s);
       if (ratio <= 0) return;
       g.beginPath();
-      g.arc(cx, cy, r, -Math.PI/2, -Math.PI/2 + ratio * Math.PI * 2);
+      g.arc(cx, cy, r, -Math.PI / 2, -Math.PI / 2 + ratio * Math.PI * 2);
       g.strokeStyle = 'rgba(120,200,255,0.95)';
       g.lineWidth = 4; g.lineCap = 'round'; g.stroke();
     }
@@ -457,69 +421,162 @@
       }
     }
 
+    // Фронт + зеркало: экран X = (1 - tip.x)
     function tipScreen(lm) {
-      // если зеркало (фронт) — инвертируем X
-      const x = mirror ? (1 - lm[8].x) * window.innerWidth : lm[8].x * window.innerWidth;
-      return { x, y: lm[8].y * window.innerHeight };
+      return {
+        x: (1 - lm[8].x) * window.innerWidth,
+        y: lm[8].y * window.innerHeight
+      };
     }
 
-    const CONN = [
-      [0,1],[1,2],[2,3],[3,4],[0,5],[5,6],[6,7],[7,8],
-      [0,9],[9,10],[10,11],[11,12],[0,13],[13,14],[14,15],[15,16],
-      [0,17],[17,18],[18,19],[19,20],[5,9],[9,13],[13,17]
+    // Quest-style solid hand mesh (не скелет)
+    const FINGERS = [
+      [1, 2, 3, 4],       // thumb
+      [5, 6, 7, 8],       // index
+      [9, 10, 11, 12],    // middle
+      [13, 14, 15, 16],   // ring
+      [17, 18, 19, 20]    // pinky
     ];
-    function col(i, j) {
-      if (i <= 4 || j <= 4) return '#FF6B6B';
-      if ((i >= 5 && i <= 8) || (j >= 5 && j <= 8)) return '#4ECDC4';
-      if ((i >= 9 && i <= 12) || (j >= 9 && j <= 12)) return '#FFE66D';
-      if ((i >= 13 && i <= 16) || (j >= 13 && j <= 16)) return '#95E1D3';
-      if ((i >= 17 && i <= 20) || (j >= 17 && j <= 20)) return '#F38181';
-      return '#A8DADC';
+    // Контур ладони
+    const PALM = [0, 1, 5, 9, 13, 17];
+
+    function px(lm, i, w, h) {
+      return { x: lm[i].x * w, y: lm[i].y * h };
     }
-    function drawTips(ctx, lm, w, h) {
-      for (let t = 0; t < 5; t++) {
-        const p = lm[TIP_IDX[t]];
-        ctx.beginPath();
-        ctx.arc(p.x * w, p.y * h, 7, 0, Math.PI * 2);
-        ctx.fillStyle = TIP_COL[t];
-        ctx.fill();
+
+    function palmScale(lm, w, h) {
+      const a = px(lm, 0, w, h), b = px(lm, 9, w, h);
+      return Math.max(Math.hypot(a.x - b.x, a.y - b.y), 12);
+    }
+
+    // Толстый сегмент пальца как капсула (Quest look)
+    function drawCapsule(ctx, ax, ay, bx, by, r, fill, stroke) {
+      const dx = bx - ax, dy = by - ay;
+      const len = Math.hypot(dx, dy) || 1;
+      const nx = -dy / len, ny = dx / len;
+      ctx.beginPath();
+      ctx.moveTo(ax + nx * r, ay + ny * r);
+      ctx.lineTo(bx + nx * r, by + ny * r);
+      ctx.arc(bx, by, r, Math.atan2(ny, nx), Math.atan2(-ny, -nx));
+      ctx.lineTo(ax - nx * r, ay - ny * r);
+      ctx.arc(ax, ay, r, Math.atan2(-ny, -nx), Math.atan2(ny, nx));
+      ctx.closePath();
+      ctx.fillStyle = fill;
+      ctx.fill();
+      if (stroke) {
+        ctx.strokeStyle = stroke;
+        ctx.lineWidth = 1.5;
+        ctx.stroke();
       }
     }
-    function drawFull(ctx, lm, w, h) {
-      CONN.forEach(([a, b]) => {
-        ctx.beginPath();
-        ctx.moveTo(lm[a].x * w, lm[a].y * h);
-        ctx.lineTo(lm[b].x * w, lm[b].y * h);
-        ctx.strokeStyle = col(a, b);
-        ctx.lineWidth = 3; ctx.lineCap = 'round'; ctx.stroke();
+
+    function drawQuestHand(lm, w, h) {
+      const scale = palmScale(lm, w, h);
+      const baseR = scale * 0.22;
+      const tipR = scale * 0.14;
+      const fill = 'rgba(210, 225, 255, 0.42)';
+      const fillDeep = 'rgba(160, 195, 255, 0.28)';
+      const stroke = 'rgba(230, 240, 255, 0.85)';
+      const glow = 'rgba(120, 180, 255, 0.35)';
+
+      ctx.save();
+      ctx.shadowColor = glow;
+      ctx.shadowBlur = 18;
+
+      // Ладонь — залитый многоугольник
+      ctx.beginPath();
+      PALM.forEach((idx, i) => {
+        const p = px(lm, idx, w, h);
+        if (i === 0) ctx.moveTo(p.x, p.y);
+        else ctx.lineTo(p.x, p.y);
       });
-      lm.forEach((p, i) => {
-        let r = 3.5, c = '#fff';
-        if (i === 0) { r = 6; c = '#5BBEFF'; }
-        else if (TIP_IDX.indexOf(i) >= 0) { r = 5; c = '#FFD700'; }
+      // скругление к запястью через точку 0
+      ctx.closePath();
+      ctx.fillStyle = fillDeep;
+      ctx.fill();
+      ctx.strokeStyle = stroke;
+      ctx.lineWidth = 2;
+      ctx.stroke();
+
+      // Запястье / основание ладони
+      const wrist = px(lm, 0, w, h);
+      ctx.beginPath();
+      ctx.arc(wrist.x, wrist.y, baseR * 0.85, 0, Math.PI * 2);
+      ctx.fillStyle = fillDeep;
+      ctx.fill();
+
+      // Пальцы — капсулы по суставам
+      FINGERS.forEach((chain, fi) => {
+        // радиусы: толще у основания, тоньше к кончику
+        const radii = fi === 0
+          ? [baseR * 0.72, baseR * 0.62, tipR * 1.15, tipR]
+          : [baseR * 0.7, baseR * 0.58, tipR * 1.2, tipR];
+        for (let i = 0; i < chain.length - 1; i++) {
+          const a = px(lm, chain[i], w, h);
+          const b = px(lm, chain[i + 1], w, h);
+          const r = (radii[i] + radii[i + 1]) * 0.5;
+          drawCapsule(ctx, a.x, a.y, b.x, b.y, r, fill, stroke);
+        }
+        // кончик пальца
+        const tip = px(lm, chain[chain.length - 1], w, h);
         ctx.beginPath();
-        ctx.arc(p.x * w, p.y * h, r, 0, Math.PI * 2);
-        ctx.fillStyle = c; ctx.fill();
+        ctx.arc(tip.x, tip.y, radii[radii.length - 1], 0, Math.PI * 2);
+        ctx.fillStyle = fill;
+        ctx.fill();
+        ctx.strokeStyle = stroke;
+        ctx.lineWidth = 1.5;
+        ctx.stroke();
       });
+
+      // Внешний контур ладони + основания пальцев (обводка Quest)
+      ctx.beginPath();
+      const outline = [0, 1, 2, 3, 4, 3, 2, 5, 6, 7, 8, 7, 6, 5, 9, 10, 11, 12, 11, 10, 9, 13, 14, 15, 16, 15, 14, 13, 17, 18, 19, 20, 19, 18, 17, 0];
+      // Проще: обвести силуэт по внешним точкам
+      const hull = [0, 1, 2, 3, 4, 8, 12, 16, 20, 19, 18, 17];
+      hull.forEach((idx, i) => {
+        const p = px(lm, idx, w, h);
+        if (i === 0) ctx.moveTo(p.x, p.y);
+        else ctx.lineTo(p.x, p.y);
+      });
+      ctx.closePath();
+      ctx.strokeStyle = 'rgba(255,255,255,0.55)';
+      ctx.lineWidth = 2.2;
+      ctx.stroke();
+
+      ctx.restore();
     }
-    function paint(list) {
-      [canvasL, canvasR].forEach((c, idx) => {
-        const v = idx ? videoR : videoL;
-        if (c.width !== v.videoWidth || c.height !== v.videoHeight) {
-          c.width = v.videoWidth || W;
-          c.height = v.videoHeight || H;
-        }
+
+    function drawTips(lm, w, h) {
+      // Режим кончиков — тоже Quest-style, только кончики + короткие сегменты
+      const scale = palmScale(lm, w, h);
+      const r = scale * 0.16;
+      const fill = 'rgba(210, 225, 255, 0.5)';
+      const stroke = 'rgba(230, 240, 255, 0.9)';
+      ctx.save();
+      ctx.shadowColor = 'rgba(120,180,255,0.4)';
+      ctx.shadowBlur = 12;
+      TIP_IDX.forEach((idx) => {
+        const p = px(lm, idx, w, h);
+        ctx.beginPath();
+        ctx.arc(p.x, p.y, r, 0, Math.PI * 2);
+        ctx.fillStyle = fill;
+        ctx.fill();
+        ctx.strokeStyle = stroke;
+        ctx.lineWidth = 1.5;
+        ctx.stroke();
       });
-      ctxL.clearRect(0, 0, canvasL.width, canvasL.height);
-      ctxR.clearRect(0, 0, canvasR.width, canvasR.height);
+      ctx.restore();
+    }
+
+    function paint(list) {
+      if (canvas.width !== video.videoWidth || canvas.height !== video.videoHeight) {
+        canvas.width = video.videoWidth || W;
+        canvas.height = video.videoHeight || H;
+      }
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
       list.forEach(lm => {
-        if (tipsOnly) {
-          drawTips(ctxL, lm, canvasL.width, canvasL.height);
-          drawTips(ctxR, lm, canvasR.width, canvasR.height);
-        } else {
-          drawFull(ctxL, lm, canvasL.width, canvasL.height);
-          drawFull(ctxR, lm, canvasR.width, canvasR.height);
-        }
+        if (tipsOnly) drawTips(lm, canvas.width, canvas.height);
+        else drawQuestHand(lm, canvas.width, canvas.height);
       });
     }
 
@@ -545,7 +602,7 @@
       if (det.length > 0) {
         setStatus('Рук: ' + det.length + (pinching ? ' · щипок' : '') + ' · двойной щипок = меню');
       } else {
-        setStatus('Камера работает · покажи руку в кадре');
+        setStatus('Покажи руку камере · видна только обводка руки');
       }
 
       if (primary && ui === 'menu') {
@@ -563,21 +620,14 @@
       startError.textContent = '';
       setStatus('Запрос камеры...');
 
-      // Важно: file:// часто блокирует камеру. Нужен http/https или localhost.
       if (location.protocol === 'file:') {
-        startError.textContent = 'Открой файл через localhost или залей на хостинг (http/https). file:// часто блокирует камеру.';
+        startError.textContent = 'Открой через localhost или https — file:// часто блокирует камеру.';
       }
-
-      const facing = useFront ? 'user' : 'environment';
-      mirror = useFront;
-
-      panelL.classList.toggle('mirror', mirror);
-      panelR.classList.toggle('mirror', mirror);
 
       try {
         stream = await navigator.mediaDevices.getUserMedia({
           video: {
-            facingMode: { ideal: facing },
+            facingMode: { ideal: 'user' },
             width: { ideal: W },
             height: { ideal: H },
             frameRate: { ideal: 30, max: 30 }
@@ -586,11 +636,8 @@
         });
       } catch (e1) {
         try {
-          stream = await navigator.mediaDevices.getUserMedia({
-            video: true,
-            audio: false
-          });
-          startError.textContent = 'Нужная камера недоступна, включена камера по умолчанию.';
+          stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: false });
+          startError.textContent = 'Включена камера по умолчанию.';
         } catch (e2) {
           startError.textContent = 'Камера недоступна: ' + (e2.message || e2.name);
           setStatus('Ошибка камеры');
@@ -598,15 +645,10 @@
         }
       }
 
-      videoL.srcObject = stream;
-      videoR.srcObject = stream;
+      video.srcObject = stream;
+      await new Promise(r => { video.onloadeddata = r; video.play().catch(() => {}); });
 
-      await Promise.all([
-        new Promise(r => { videoL.onloadeddata = r; videoL.play().catch(() => {}); }),
-        new Promise(r => { videoR.onloadeddata = r; videoR.play().catch(() => {}); })
-      ]);
-
-      setStatus('Загрузка модели MediaPipe...');
+      setStatus('Загрузка модели...');
 
       if (typeof Hands === 'undefined') {
         startError.textContent = 'MediaPipe не загрузился. Нужен интернет.';
@@ -625,9 +667,9 @@
       });
       hands.onResults(onResults);
 
-      camera = new Camera(videoL, {
+      camera = new Camera(video, {
         onFrame: async () => {
-          try { await hands.send({ image: videoL }); }
+          try { await hands.send({ image: video }); }
           catch (e) { console.warn(e); }
         },
         width: W,
@@ -635,11 +677,7 @@
       });
       await camera.start();
       running = true;
-      setStatus('Готово · покажи руку');
-
-      if (!useFront) {
-        setStatus('Задняя камера · наведи её на руки');
-      }
+      setStatus('Готово · покажи руку · видна только обводка руки');
 
       try {
         if (screen.orientation && screen.orientation.lock) {
@@ -669,9 +707,7 @@
         console.error(e);
         startMenu.classList.remove('hidden');
         game.classList.remove('active');
-        if (!startError.textContent) {
-          startError.textContent = 'Ошибка: ' + (e.message || e);
-        }
+        if (!startError.textContent) startError.textContent = 'Ошибка: ' + (e.message || e);
       });
     }
     document.getElementById('btnFull').onclick = () => boot(false);
