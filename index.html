@@ -49,7 +49,8 @@
     .cam-panel:last-child { border-right: none; }
     .cam-panel video, .cam-panel canvas {
       position: absolute; top: 0; left: 0; width: 100%; height: 100%;
-      object-fit: cover; transform: scaleX(-1);
+      object-fit: cover;
+      /* задняя камера — без зеркала */
     }
     .cam-panel video { z-index: 1; }
     .cam-panel canvas { z-index: 2; pointer-events: none; }
@@ -396,7 +397,8 @@
 
     function tipToScreen(lm) {
       const tip = lm[8];
-      return { x: (1 - tip.x) * window.innerWidth, y: tip.y * window.innerHeight };
+      // задняя камера без зеркала
+      return { x: tip.x * window.innerWidth, y: tip.y * window.innerHeight };
     }
 
     function drawTips(ctx, lm, w, h) {
@@ -495,7 +497,7 @@
     async function startCamera() {
       stream = await navigator.mediaDevices.getUserMedia({
         video: {
-          facingMode: 'user',
+          facingMode: { ideal: 'environment' },
           width: { ideal: currentQuality.w, max: currentQuality.w },
           height: { ideal: currentQuality.h, max: currentQuality.h },
           frameRate: { ideal: 30, max: 30 }
