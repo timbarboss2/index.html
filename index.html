@@ -3,148 +3,214 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, maximum-scale=1.0">
-  <title>Hand Tracking</title>
+  <title>Hand Tracking — Quest Style</title>
   <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js" crossorigin="anonymous"></script>
   <script src="https://cdn.jsdelivr.net/npm/@mediapipe/hands/hands.js" crossorigin="anonymous"></script>
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
     html, body {
       width: 100%; height: 100%; overflow: hidden;
-      background: #000; font-family: 'Segoe UI', system-ui, sans-serif; color: #e0f7fa;
+      background: #000; font-family: 'Segoe UI', system-ui, sans-serif; color: #fff;
     }
+
     #rotate-hint {
-      display: none; position: fixed; inset: 0; z-index: 200; background: #0a1628;
-      flex-direction: column; align-items: center; justify-content: center;
-      gap: 16px; text-align: center; padding: 24px; font-size: 1.2rem;
+      display: none; position: fixed; inset: 0; z-index: 300;
+      background: #0b0f1a; flex-direction: column; align-items: center;
+      justify-content: center; gap: 16px; text-align: center; padding: 24px;
     }
-    #rotate-hint .icon { font-size: 3rem; animation: tilt 1.8s ease-in-out infinite; }
-    @keyframes tilt { 0%,100%{transform:rotate(0)} 50%{transform:rotate(90deg)} }
-    @media screen and (orientation: portrait) {
+    @media (orientation: portrait) {
       #rotate-hint { display: flex; }
-      #menu, #game, #handMenu, #clockView, #browserView { visibility: hidden !important; pointer-events: none !important; }
+      #startMenu, #game, #questMenu, #clockView, #browserView {
+        visibility: hidden !important; pointer-events: none !important;
+      }
     }
-    #menu {
-      position: fixed; inset: 0; z-index: 100; display: flex; flex-direction: column;
-      align-items: center; justify-content: center;
-      background: linear-gradient(160deg,#0a1628,#0d2137,#0a1628); gap: 18px; padding: 20px;
+
+    /* ===== Старт ===== */
+    #startMenu {
+      position: fixed; inset: 0; z-index: 100;
+      display: flex; flex-direction: column; align-items: center; justify-content: center;
+      background: radial-gradient(ellipse at center, #152238 0%, #0a0e18 70%);
+      gap: 16px; padding: 20px;
     }
-    #menu h1 { font-size: clamp(1.25rem,4vw,1.75rem); text-shadow: 0 0 16px rgba(0,229,255,.5); }
-    #menu .sub { font-size: .9rem; opacity: .75; margin-bottom: 6px; }
+    #startMenu h1 { font-size: clamp(1.3rem, 4vw, 1.9rem); font-weight: 600; letter-spacing: 1px; }
+    #startMenu .sub { opacity: 0.65; font-size: 0.9rem; margin-bottom: 8px; }
     .mode-btn {
-      width: min(300px,70vw); padding: 14px 20px; border: 2px solid rgba(0,229,255,.45);
-      border-radius: 16px; background: rgba(0,40,60,.55); color: #e0f7fa; font-size: 1rem;
-      cursor: pointer; text-align: left;
+      width: min(300px, 75vw); padding: 16px 22px;
+      border: 1px solid rgba(120,180,255,0.35);
+      border-radius: 20px;
+      background: rgba(30,50,80,0.45);
+      backdrop-filter: blur(12px);
+      color: #fff; font-size: 1rem; cursor: pointer; text-align: left;
+      transition: transform 0.15s, border-color 0.15s, box-shadow 0.15s;
     }
-    .mode-btn strong { display: block; font-size: 1.1rem; margin-bottom: 2px; }
-    .mode-btn span { font-size: .8rem; opacity: .8; }
-    #menu.hidden { display: none; }
+    .mode-btn:active { transform: scale(0.98); }
+    .mode-btn strong { display: block; font-size: 1.15rem; margin-bottom: 3px; }
+    .mode-btn span { font-size: 0.8rem; opacity: 0.7; }
+    #startMenu.hidden { display: none; }
+
+    /* ===== Камера (задняя, 2 панели) ===== */
     #game {
-      position: fixed; inset: 0; display: none; flex-direction: row; width: 100vw; height: 100vh;
+      position: fixed; inset: 0; display: none; flex-direction: row;
+      width: 100vw; height: 100vh;
     }
     #game.active { display: flex; }
     .cam-panel {
       position: relative; width: 50%; height: 100%; overflow: hidden;
-      border-right: 2px solid rgba(0,229,255,.35);
+      border-right: 1px solid rgba(100,160,255,0.25);
     }
     .cam-panel:last-child { border-right: none; }
     .cam-panel video, .cam-panel canvas {
-      position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+      position: absolute; inset: 0; width: 100%; height: 100%;
       object-fit: cover;
-      /* задняя камера — без зеркала */
     }
     .cam-panel video { z-index: 1; }
     .cam-panel canvas { z-index: 2; pointer-events: none; }
     .cam-label {
-      position: absolute; top: 10px; left: 12px; z-index: 10;
-      background: rgba(0,0,0,.55); padding: 4px 12px; border-radius: 10px;
-      font-size: .8rem; color: #80deea; pointer-events: none;
+      position: absolute; top: 12px; left: 14px; z-index: 5;
+      padding: 5px 12px; border-radius: 20px;
+      background: rgba(10,15,30,0.55); backdrop-filter: blur(8px);
+      font-size: 0.75rem; color: rgba(180,210,255,0.9);
+      border: 1px solid rgba(120,180,255,0.2);
     }
-    #handMenu {
-      position: fixed; inset: 0; z-index: 50; display: none;
-      align-items: center; justify-content: center;
-      background: rgba(0,10,20,.72); backdrop-filter: blur(8px);
+
+    /* ===== Курсор пальца ===== */
+    #cursor {
+      position: fixed; width: 28px; height: 28px; border-radius: 50%;
+      border: 2px solid rgba(100,200,255,0.95);
+      background: rgba(80,180,255,0.25);
+      box-shadow: 0 0 16px rgba(80,180,255,0.6), inset 0 0 8px rgba(255,255,255,0.3);
+      z-index: 80; pointer-events: none; display: none;
+      transform: translate(-50%, -50%);
     }
-    #handMenu.open { display: flex; }
-    .hand-menu-box {
-      display: flex; gap: 48px; align-items: center; justify-content: center;
-      flex-wrap: wrap; padding: 24px;
+    #cursor.on { display: block; }
+    #cursor .ring {
+      position: absolute; inset: -6px; border-radius: 50%;
+      border: 2px solid transparent;
     }
-    .menu-icon {
-      width: 110px; height: 110px; border-radius: 24px;
-      border: 3px solid rgba(0,229,255,.5); background: rgba(0,40,60,.75);
+
+    /* ===== Quest-style меню ===== */
+    #questMenu {
+      position: fixed; inset: 0; z-index: 60;
+      display: none; align-items: center; justify-content: center;
+      background: rgba(5, 10, 20, 0.55);
+      backdrop-filter: blur(18px);
+    }
+    #questMenu.open { display: flex; }
+
+    .quest-panel {
+      position: relative;
+      padding: 36px 48px 28px;
+      border-radius: 28px;
+      background: linear-gradient(160deg, rgba(40,55,90,0.55), rgba(20,30,55,0.65));
+      border: 1px solid rgba(140,180,255,0.28);
+      box-shadow:
+        0 20px 60px rgba(0,0,0,0.45),
+        0 0 40px rgba(60,120,255,0.12),
+        inset 0 1px 0 rgba(255,255,255,0.08);
+      backdrop-filter: blur(24px);
+      display: flex; flex-direction: column; align-items: center; gap: 28px;
+      min-width: min(420px, 90vw);
+    }
+    .quest-panel::before {
+      content: '';
+      position: absolute; inset: 0; border-radius: 28px;
+      background: radial-gradient(ellipse at 50% 0%, rgba(100,160,255,0.12), transparent 60%);
+      pointer-events: none;
+    }
+    .quest-title {
+      font-size: 1.05rem; font-weight: 500; letter-spacing: 2px;
+      text-transform: uppercase; opacity: 0.85;
+    }
+    .quest-icons {
+      display: flex; gap: 36px; align-items: flex-start; justify-content: center;
+    }
+    .q-icon {
+      width: 100px; height: 100px;
+      border-radius: 50%;
+      background: linear-gradient(145deg, rgba(50,70,110,0.7), rgba(25,40,70,0.8));
+      border: 2px solid rgba(130,180,255,0.35);
       display: flex; flex-direction: column; align-items: center; justify-content: center;
-      gap: 8px; position: relative; transition: border-color .2s, box-shadow .2s, transform .2s;
+      position: relative;
+      box-shadow: 0 8px 24px rgba(0,0,0,0.35), inset 0 1px 0 rgba(255,255,255,0.1);
+      transition: transform 0.2s, border-color 0.2s, box-shadow 0.2s;
     }
-    .menu-icon .emoji { font-size: 2.6rem; line-height: 1; }
-    .menu-icon .label { font-size: .85rem; opacity: .9; }
-    .menu-icon.hover {
-      border-color: #00e5ff; box-shadow: 0 0 28px rgba(0,229,255,.55); transform: scale(1.06);
+    .q-icon .emoji { font-size: 2.4rem; line-height: 1; filter: drop-shadow(0 2px 4px rgba(0,0,0,0.4)); }
+    .q-icon .q-label {
+      position: absolute; bottom: -28px; left: 50%; transform: translateX(-50%);
+      font-size: 0.8rem; white-space: nowrap; opacity: 0.85; letter-spacing: 0.5px;
     }
-    .menu-icon .progress {
-      position: absolute; inset: -4px; border-radius: 26px; pointer-events: none;
+    .q-icon.hover {
+      transform: scale(1.08);
+      border-color: rgba(120,200,255,0.95);
+      box-shadow: 0 0 32px rgba(80,180,255,0.45), 0 8px 24px rgba(0,0,0,0.35);
     }
-    .hint-bar {
-      position: absolute; bottom: 18px; left: 50%; transform: translateX(-50%);
-      font-size: .85rem; opacity: .75; text-align: center; white-space: nowrap;
+    .q-icon canvas.prog {
+      position: absolute; inset: -5px; width: calc(100% + 10px); height: calc(100% + 10px);
+      pointer-events: none;
     }
-    #fingerCursor {
-      position: fixed; width: 22px; height: 22px; border-radius: 50%;
-      border: 2px solid #00e5ff; background: rgba(0,229,255,.35);
-      box-shadow: 0 0 12px rgba(0,229,255,.7); z-index: 60; pointer-events: none;
-      display: none; transform: translate(-50%,-50%);
+    .quest-hint {
+      margin-top: 18px; font-size: 0.78rem; opacity: 0.55; text-align: center;
+      line-height: 1.4;
     }
-    #fingerCursor.visible { display: block; }
+
+    /* ===== Часы ===== */
     #clockView {
-      position: fixed; inset: 0; z-index: 55; display: none;
-      align-items: center; justify-content: center; background: rgba(0,10,20,.8);
-      flex-direction: column; gap: 12px;
+      position: fixed; inset: 0; z-index: 70;
+      display: none; flex-direction: column; align-items: center; justify-content: center;
+      background: rgba(5,10,20,0.7); backdrop-filter: blur(16px); gap: 10px;
     }
     #clockView.open { display: flex; }
     #clockView .time {
-      font-size: clamp(2.8rem,12vw,5.5rem); font-weight: 700; letter-spacing: 3px;
-      text-shadow: 0 0 24px rgba(0,229,255,.8);
+      font-size: clamp(3rem, 12vw, 5.5rem); font-weight: 300; letter-spacing: 4px;
+      text-shadow: 0 0 30px rgba(100,180,255,0.5);
     }
-    #clockView .date { font-size: clamp(1rem,3.5vw,1.6rem); opacity: .95; }
-    #clockView .back-hint { margin-top: 24px; font-size: .85rem; opacity: .7; }
+    #clockView .date { font-size: clamp(1rem, 3.5vw, 1.5rem); opacity: 0.8; font-weight: 300; }
+    #clockView .hint { margin-top: 28px; font-size: 0.8rem; opacity: 0.5; }
+
+    /* ===== Браузер ===== */
     #browserView {
-      position: fixed; inset: 0; z-index: 55; display: none; flex-direction: column; background: #0a1628;
+      position: fixed; inset: 0; z-index: 70;
+      display: none; flex-direction: column; background: #0b0f1a;
     }
     #browserView.open { display: flex; }
     .browser-bar {
-      display: flex; gap: 8px; padding: 10px 12px; background: rgba(0,30,50,.95);
-      border-bottom: 1px solid rgba(0,229,255,.3); align-items: center; flex-shrink: 0;
+      display: flex; gap: 8px; padding: 10px 12px;
+      background: rgba(15,25,45,0.95); border-bottom: 1px solid rgba(100,160,255,0.2);
+      align-items: center;
     }
     .browser-bar input {
-      flex: 1; padding: 10px 14px; border-radius: 12px; border: 1px solid rgba(0,229,255,.4);
-      background: rgba(0,20,40,.8); color: #e0f7fa; font-size: .95rem; outline: none;
+      flex: 1; padding: 10px 14px; border-radius: 14px;
+      border: 1px solid rgba(100,160,255,0.3);
+      background: rgba(20,35,60,0.8); color: #fff; font-size: 0.95rem; outline: none;
     }
     .browser-bar button {
-      padding: 10px 16px; border-radius: 12px; border: none;
-      background: linear-gradient(135deg,#00bcd4,#0097a7); color: #fff; font-size: .9rem; cursor: pointer;
-      white-space: nowrap;
+      padding: 10px 16px; border-radius: 14px; border: none;
+      background: linear-gradient(135deg, #3a7bd5, #2b5ea8);
+      color: #fff; font-size: 0.9rem; cursor: pointer; white-space: nowrap;
     }
     #browserFrame { flex: 1; width: 100%; border: none; background: #fff; }
     .browser-hint {
-      padding: 6px 12px; font-size: .75rem; opacity: .7; text-align: center; background: rgba(0,0,0,.4);
+      padding: 6px; font-size: 0.72rem; opacity: 0.55; text-align: center;
+      background: rgba(0,0,0,0.35);
     }
   </style>
 </head>
 <body>
   <div id="rotate-hint">
-    <div class="icon">📱</div>
+    <div style="font-size:2.8rem">📱</div>
     <div>Поверни телефон горизонтально</div>
   </div>
 
-  <div id="menu">
-    <h1>❄️ Трекинг рук</h1>
-    <p class="sub">Выбери режим · 2 камеры</p>
+  <div id="startMenu">
+    <h1>❄️ Hand Tracking</h1>
+    <p class="sub">Задняя камера · меню как в Quest</p>
     <button class="mode-btn" id="btnFull">
-      <strong>🖐 Полный трекинг</strong>
-      <span>Скелет всей руки</span>
+      <strong>🖐 Полный скелет</strong>
+      <span>Все суставы руки</span>
     </button>
     <button class="mode-btn" id="btnTips">
       <strong>👆 Только кончики</strong>
-      <span>Кончики пальцев — быстрее</span>
+      <span>Быстрее на слабых телефонах</span>
     </button>
   </div>
 
@@ -152,46 +218,53 @@
     <div class="cam-panel">
       <video id="videoL" playsinline autoplay muted></video>
       <canvas id="canvasL"></canvas>
-      <div class="cam-label">📷 Левая</div>
+      <div class="cam-label">📷 Задняя · Л</div>
     </div>
     <div class="cam-panel">
       <video id="videoR" playsinline autoplay muted></video>
       <canvas id="canvasR"></canvas>
-      <div class="cam-label">📷 Правая</div>
+      <div class="cam-label">📷 Задняя · П</div>
     </div>
   </div>
 
-  <div id="fingerCursor"></div>
+  <div id="cursor"><div class="ring"></div></div>
 
-  <div id="handMenu">
-    <div class="hand-menu-box">
-      <div class="menu-icon" id="iconClock" data-action="clock">
-        <canvas class="progress" width="118" height="118"></canvas>
-        <div class="emoji">🕐</div>
-        <div class="label">Часы</div>
+  <!-- Quest-style меню -->
+  <div id="questMenu">
+    <div class="quest-panel">
+      <div class="quest-title">Меню</div>
+      <div class="quest-icons">
+        <div class="q-icon" id="iconClock">
+          <canvas class="prog" width="110" height="110"></canvas>
+          <div class="emoji">🕐</div>
+          <div class="q-label">Часы</div>
+        </div>
+        <div class="q-icon" id="iconBrowser">
+          <canvas class="prog" width="110" height="110"></canvas>
+          <div class="emoji">🌐</div>
+          <div class="q-label">Браузер</div>
+        </div>
       </div>
-      <div class="menu-icon" id="iconBrowser" data-action="browser">
-        <canvas class="progress" width="118" height="118"></canvas>
-        <div class="emoji">🌐</div>
-        <div class="label">Браузер</div>
+      <div class="quest-hint">
+        Наведи указательный палец · удержи 3 сек<br>
+        Двойной щипок — закрыть меню
       </div>
     </div>
-    <div class="hint-bar">Наведи палец · 3 сек · Двойной щипок — закрыть</div>
   </div>
 
   <div id="clockView">
     <div class="time" id="cvTime">00:00:00</div>
     <div class="date" id="cvDate">—</div>
-    <div class="back-hint">Двойной щипок — назад в меню</div>
+    <div class="hint">Двойной щипок — назад</div>
   </div>
 
   <div id="browserView">
     <div class="browser-bar">
-      <input type="text" id="searchInput" placeholder="Поиск в интернете..." enterkeyhint="search">
+      <input type="text" id="searchInput" placeholder="Поиск..." enterkeyhint="search">
       <button id="btnSearch">Найти</button>
       <button id="btnBrowserBack">Назад</button>
     </div>
-    <div class="browser-hint">Двойной щипок — закрыть · Можно печатать на клавиатуре</div>
+    <div class="browser-hint">Двойной щипок — закрыть</div>
     <iframe id="browserFrame" src="about:blank" sandbox="allow-scripts allow-same-origin allow-forms allow-popups"></iframe>
   </div>
 
@@ -202,258 +275,295 @@
     const canvasR = document.getElementById('canvasR');
     const ctxL = canvasL.getContext('2d');
     const ctxR = canvasR.getContext('2d');
-    const startMenu = document.getElementById('menu');
+    const startMenu = document.getElementById('startMenu');
     const game = document.getElementById('game');
-    const handMenu = document.getElementById('handMenu');
+    const questMenu = document.getElementById('questMenu');
     const clockView = document.getElementById('clockView');
     const browserView = document.getElementById('browserView');
-    const fingerCursor = document.getElementById('fingerCursor');
+    const cursor = document.getElementById('cursor');
     const iconClock = document.getElementById('iconClock');
     const iconBrowser = document.getElementById('iconBrowser');
     const searchInput = document.getElementById('searchInput');
     const browserFrame = document.getElementById('browserFrame');
 
     let tipsOnly = false;
-    let gameStarted = false;
-    let uiState = 'game';
+    let running = false;
+    // game | menu | clock | browser
+    let ui = 'game';
 
-    const TIP_INDICES = [4, 8, 12, 16, 20];
-    const TIP_COLORS = ['#FF6B6B', '#4ECDC4', '#FFE66D', '#95E1D3', '#F38181'];
+    const TIP_IDX = [4, 8, 12, 16, 20];
+    const TIP_COL = ['#FF6B6B', '#4ECDC4', '#FFE66D', '#95E1D3', '#F38181'];
 
-    const isWeakDevice = (() => {
-      const cores = navigator.hardwareConcurrency || 2;
-      const memory = navigator.deviceMemory || 2;
-      const isMobile = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
-      return isMobile && (cores <= 4 || memory <= 3);
+    const isWeak = (() => {
+      const c = navigator.hardwareConcurrency || 2;
+      const m = navigator.deviceMemory || 2;
+      return /Android|iPhone|iPad/i.test(navigator.userAgent) && (c <= 4 || m <= 3);
     })();
 
-    const QUALITY_LEVELS = [
-      { w: 480, h: 360, fps: 30 },
-      { w: 640, h: 480, fps: 30 }
-    ];
-    let qualityIndex = isWeakDevice ? 0 : 1;
-    let currentQuality = QUALITY_LEVELS[qualityIndex];
+    const W = isWeak ? 480 : 640;
+    const H = isWeak ? 360 : 480;
 
-    const SMOOTH_ALPHA = 0.55;
-    let smoothedHands = [null, null];
+    // ===== Сглаживание: быстрый отклик + меньше тряски =====
+    // One-Euro-like: больше сглаживания когда медленно, меньше когда быстро
+    const MIN_CUTOFF = 0.8;
+    const BETA = 0.4;
+    const D_CUTOFF = 1.0;
+    let smoothState = [null, null]; // {x,y,z,dx,dy,dz,ts}[] per landmark per hand
 
-    function smoothLandmarks(newLandmarks, handIdx) {
-      if (!smoothedHands[handIdx]) {
-        smoothedHands[handIdx] = newLandmarks.map(p => ({ x: p.x, y: p.y, z: p.z || 0 }));
-        return smoothedHands[handIdx];
-      }
-      const prev = smoothedHands[handIdx];
-      for (let i = 0; i < newLandmarks.length; i++) {
-        prev[i].x = SMOOTH_ALPHA * newLandmarks[i].x + (1 - SMOOTH_ALPHA) * prev[i].x;
-        prev[i].y = SMOOTH_ALPHA * newLandmarks[i].y + (1 - SMOOTH_ALPHA) * prev[i].y;
-        prev[i].z = SMOOTH_ALPHA * (newLandmarks[i].z || 0) + (1 - SMOOTH_ALPHA) * prev[i].z;
-      }
-      return prev;
+    function alpha(cutoff, dt) {
+      const tau = 1.0 / (2 * Math.PI * cutoff);
+      return 1.0 / (1.0 + tau / dt);
     }
-    function resetSmooth(handIdx) { smoothedHands[handIdx] = null; }
 
-    const PINCH_THRESHOLD = 0.06;
-    const MIN_HAND_SIZE = 0.06;
-    const MAX_HAND_SIZE = 0.6;
-    let wasPinching = false;
-    let lastPinchEndTime = 0;
-    let pinchCount = 0;
-    const DOUBLE_PINCH_MS = 700;
+    function smoothHand(lm, handIdx) {
+      const now = performance.now() / 1000;
+      if (!smoothState[handIdx]) {
+        smoothState[handIdx] = lm.map(p => ({
+          x: p.x, y: p.y, z: p.z || 0,
+          dx: 0, dy: 0, dz: 0, ts: now
+        }));
+        return smoothState[handIdx].map(s => ({ x: s.x, y: s.y, z: s.z }));
+      }
+      const st = smoothState[handIdx];
+      const out = [];
+      for (let i = 0; i < lm.length; i++) {
+        const s = st[i];
+        let dt = now - s.ts;
+        if (dt <= 0 || dt > 0.5) dt = 1 / 30;
+        s.ts = now;
 
-    function handSize(lm) {
+        const nx = lm[i].x, ny = lm[i].y, nz = lm[i].z || 0;
+        // скорость
+        const axd = alpha(D_CUTOFF, dt);
+        s.dx = axd * ((nx - s.x) / dt) + (1 - axd) * s.dx;
+        s.dy = axd * ((ny - s.y) / dt) + (1 - axd) * s.dy;
+        s.dz = axd * ((nz - s.z) / dt) + (1 - axd) * s.dz;
+        const speed = Math.sqrt(s.dx * s.dx + s.dy * s.dy);
+
+        const cutoff = MIN_CUTOFF + BETA * speed;
+        const a = alpha(cutoff, dt);
+        s.x = a * nx + (1 - a) * s.x;
+        s.y = a * ny + (1 - a) * s.y;
+        s.z = a * nz + (1 - a) * s.z;
+        out.push({ x: s.x, y: s.y, z: s.z });
+      }
+      return out;
+    }
+
+    function resetSmooth(i) { smoothState[i] = null; }
+
+    // ===== Щипок =====
+    const PINCH_DIST = 0.055;
+    let wasPinch = false;
+    let lastPinchUp = 0;
+    let pinchClicks = 0;
+
+    function handSpan(lm) {
       const dx = lm[0].x - lm[12].x;
       const dy = lm[0].y - lm[12].y;
       return Math.sqrt(dx * dx + dy * dy);
     }
-    function isPinching(lm) {
-      const size = handSize(lm);
-      if (size < MIN_HAND_SIZE || size > MAX_HAND_SIZE) return false;
+
+    function checkPinch(lm) {
+      const span = handSpan(lm);
+      if (span < 0.05 || span > 0.65) return false;
       const dx = lm[4].x - lm[8].x;
       const dy = lm[4].y - lm[8].y;
-      const dist = Math.sqrt(dx * dx + dy * dy);
-      const thresh = Math.max(0.04, Math.min(0.1, PINCH_THRESHOLD * (size / 0.2)));
-      return dist < thresh;
+      const d = Math.sqrt(dx * dx + dy * dy);
+      // адаптивный порог
+      return d < Math.max(0.035, Math.min(0.09, PINCH_DIST * (span / 0.18)));
     }
 
-    function handlePinchLogic(anyPinch) {
-      if (anyPinch && !wasPinching) {
-        wasPinching = true;
-      } else if (!anyPinch && wasPinching) {
-        wasPinching = false;
-        const now = performance.now();
-        if (now - lastPinchEndTime < DOUBLE_PINCH_MS) pinchCount++;
-        else pinchCount = 1;
-        lastPinchEndTime = now;
-        if (pinchCount >= 2) {
-          pinchCount = 0;
-          onDoublePinch();
+    function onPinchFrame(pinching) {
+      if (pinching && !wasPinch) {
+        wasPinch = true;
+      } else if (!pinching && wasPinch) {
+        wasPinch = false;
+        const t = performance.now();
+        if (t - lastPinchUp < 750) pinchClicks++;
+        else pinchClicks = 1;
+        lastPinchUp = t;
+        if (pinchClicks >= 2) {
+          pinchClicks = 0;
+          doublePinch();
         }
       }
     }
 
-    function onDoublePinch() {
-      if (uiState === 'game') openHandMenu();
-      else if (uiState === 'menu') closeHandMenu();
-      else if (uiState === 'clock') { closeClockView(); openHandMenu(); }
-      else if (uiState === 'browser') { closeBrowserView(); openHandMenu(); }
+    function doublePinch() {
+      if (ui === 'game') openMenu();
+      else if (ui === 'menu') closeMenu();
+      else if (ui === 'clock') { clockView.classList.remove('open'); openMenu(); }
+      else if (ui === 'browser') { browserView.classList.remove('open'); openMenu(); }
     }
 
-    function openHandMenu() {
-      uiState = 'menu';
-      handMenu.classList.add('open');
+    function openMenu() {
+      ui = 'menu';
+      questMenu.classList.add('open');
       clockView.classList.remove('open');
       browserView.classList.remove('open');
-      fingerCursor.classList.add('visible');
+      cursor.classList.add('on');
       resetDwell();
     }
-    function closeHandMenu() {
-      uiState = 'game';
-      handMenu.classList.remove('open');
-      fingerCursor.classList.remove('visible');
+    function closeMenu() {
+      ui = 'game';
+      questMenu.classList.remove('open');
+      cursor.classList.remove('on');
       resetDwell();
     }
-    function openClockView() {
-      uiState = 'clock';
-      handMenu.classList.remove('open');
-      updateClockDisplay();
+    function openClock() {
+      ui = 'clock';
+      questMenu.classList.remove('open');
+      tickClock();
       clockView.classList.add('open');
-      fingerCursor.classList.remove('visible');
+      cursor.classList.remove('on');
       resetDwell();
     }
-    function closeClockView() { clockView.classList.remove('open'); }
-    function openBrowserView() {
-      uiState = 'browser';
-      handMenu.classList.remove('open');
+    function openBrowser() {
+      ui = 'browser';
+      questMenu.classList.remove('open');
       browserView.classList.add('open');
-      fingerCursor.classList.remove('visible');
+      cursor.classList.remove('on');
       resetDwell();
       if (!browserFrame.src || browserFrame.src === 'about:blank') {
         browserFrame.src = 'https://duckduckgo.com/';
       }
     }
-    function closeBrowserView() { browserView.classList.remove('open'); }
 
-    function updateClockDisplay() {
-      const now = new Date();
-      const hh = String(now.getHours()).padStart(2, '0');
-      const mm = String(now.getMinutes()).padStart(2, '0');
-      const ss = String(now.getSeconds()).padStart(2, '0');
-      document.getElementById('cvTime').textContent = hh + ':' + mm + ':' + ss;
+    function tickClock() {
+      const n = new Date();
+      const p = v => String(v).padStart(2, '0');
+      document.getElementById('cvTime').textContent = p(n.getHours()) + ':' + p(n.getMinutes()) + ':' + p(n.getSeconds());
       const days = ['Воскресенье','Понедельник','Вторник','Среда','Четверг','Пятница','Суббота'];
       const months = ['января','февраля','марта','апреля','мая','июня','июля','августа','сентября','октября','ноября','декабря'];
       document.getElementById('cvDate').textContent =
-        days[now.getDay()] + ', ' + now.getDate() + ' ' + months[now.getMonth()] + ' ' + now.getFullYear();
+        days[n.getDay()] + ', ' + n.getDate() + ' ' + months[n.getMonth()] + ' ' + n.getFullYear();
     }
-    setInterval(function () { if (uiState === 'clock') updateClockDisplay(); }, 1000);
+    setInterval(() => { if (ui === 'clock') tickClock(); }, 1000);
 
-    const DWELL_MS = 3000;
-    let dwellTarget = null;
-    let dwellStart = 0;
+    // ===== Dwell 3 сек =====
+    const DWELL = 3000;
+    let dwellId = null;
+    let dwellT0 = 0;
 
     function resetDwell() {
-      dwellTarget = null; dwellStart = 0;
-      drawProgress(iconClock, 0); drawProgress(iconBrowser, 0);
-      iconClock.classList.remove('hover'); iconBrowser.classList.remove('hover');
+      dwellId = null; dwellT0 = 0;
+      drawRing(iconClock, 0);
+      drawRing(iconBrowser, 0);
+      iconClock.classList.remove('hover');
+      iconBrowser.classList.remove('hover');
     }
-    function drawProgress(iconEl, ratio) {
-      const c = iconEl.querySelector('.progress');
-      const ctx = c.getContext('2d');
-      const size = c.width, cx = size / 2, cy = size / 2, r = size / 2 - 3;
-      ctx.clearRect(0, 0, size, size);
-      if (ratio <= 0) return;
-      ctx.beginPath();
-      ctx.arc(cx, cy, r, -Math.PI / 2, -Math.PI / 2 + ratio * Math.PI * 2);
-      ctx.strokeStyle = '#00e5ff'; ctx.lineWidth = 4; ctx.lineCap = 'round'; ctx.stroke();
-    }
-    function pointInIcon(sx, sy, iconEl) {
-      const rect = iconEl.getBoundingClientRect();
-      return sx >= rect.left && sx <= rect.right && sy >= rect.top && sy <= rect.bottom;
-    }
-    function updateDwell(sx, sy) {
-      if (uiState !== 'menu') return;
-      let hit = null;
-      if (pointInIcon(sx, sy, iconClock)) hit = 'clock';
-      else if (pointInIcon(sx, sy, iconBrowser)) hit = 'browser';
 
-      if (hit !== dwellTarget) {
-        dwellTarget = hit;
-        dwellStart = hit ? performance.now() : 0;
+    function drawRing(el, ratio) {
+      const c = el.querySelector('.prog');
+      const g = c.getContext('2d');
+      const s = c.width, cx = s / 2, cy = s / 2, r = s / 2 - 4;
+      g.clearRect(0, 0, s, s);
+      if (ratio <= 0) return;
+      g.beginPath();
+      g.arc(cx, cy, r, -Math.PI / 2, -Math.PI / 2 + ratio * Math.PI * 2);
+      g.strokeStyle = 'rgba(120,200,255,0.95)';
+      g.lineWidth = 4;
+      g.lineCap = 'round';
+      g.stroke();
+    }
+
+    function hitIcon(x, y, el) {
+      const r = el.getBoundingClientRect();
+      return x >= r.left && x <= r.right && y >= r.top && y <= r.bottom;
+    }
+
+    function updateDwell(x, y) {
+      if (ui !== 'menu') return;
+      let hit = null;
+      if (hitIcon(x, y, iconClock)) hit = 'clock';
+      else if (hitIcon(x, y, iconBrowser)) hit = 'browser';
+
+      if (hit !== dwellId) {
+        dwellId = hit;
+        dwellT0 = hit ? performance.now() : 0;
         iconClock.classList.toggle('hover', hit === 'clock');
         iconBrowser.classList.toggle('hover', hit === 'browser');
-        if (!hit) { drawProgress(iconClock, 0); drawProgress(iconBrowser, 0); }
+        if (!hit) { drawRing(iconClock, 0); drawRing(iconBrowser, 0); }
       }
-      if (dwellTarget) {
-        const ratio = Math.min(1, (performance.now() - dwellStart) / DWELL_MS);
-        if (dwellTarget === 'clock') { drawProgress(iconClock, ratio); drawProgress(iconBrowser, 0); }
-        else { drawProgress(iconBrowser, ratio); drawProgress(iconClock, 0); }
+      if (dwellId) {
+        const ratio = Math.min(1, (performance.now() - dwellT0) / DWELL);
+        if (dwellId === 'clock') { drawRing(iconClock, ratio); drawRing(iconBrowser, 0); }
+        else { drawRing(iconBrowser, ratio); drawRing(iconClock, 0); }
         if (ratio >= 1) {
-          const action = dwellTarget;
+          const a = dwellId;
           resetDwell();
-          if (action === 'clock') openClockView();
-          else if (action === 'browser') openBrowserView();
+          if (a === 'clock') openClock();
+          else openBrowser();
         }
       }
     }
 
-    function tipToScreen(lm) {
-      const tip = lm[8];
-      // задняя камера без зеркала
-      return { x: tip.x * window.innerWidth, y: tip.y * window.innerHeight };
+    // Задняя камера БЕЗ зеркала
+    function tipScreen(lm) {
+      return {
+        x: lm[8].x * window.innerWidth,
+        y: lm[8].y * window.innerHeight
+      };
     }
 
-    function drawTips(ctx, lm, w, h) {
-      for (let t = 0; t < TIP_INDICES.length; t++) {
-        const p = lm[TIP_INDICES[t]];
-        ctx.beginPath();
-        ctx.arc(p.x * w, p.y * h, 6.5, 0, Math.PI * 2);
-        ctx.fillStyle = TIP_COLORS[t];
-        ctx.fill();
-      }
-    }
-    const HAND_CONNECTIONS = [
+    // ===== Рисование =====
+    const CONN = [
       [0,1],[1,2],[2,3],[3,4],[0,5],[5,6],[6,7],[7,8],
       [0,9],[9,10],[10,11],[11,12],[0,13],[13,14],[14,15],[15,16],
       [0,17],[17,18],[18,19],[19,20],[5,9],[9,13],[13,17]
     ];
-    const FINGER_COLORS = {
-      thumb:'#FF6B6B', index:'#4ECDC4', middle:'#FFE66D',
-      ring:'#95E1D3', pinky:'#F38181', palm:'#A8DADC'
-    };
-    function getColor(i, j) {
-      if (i <= 4 || j <= 4) return FINGER_COLORS.thumb;
-      if ((i >= 5 && i <= 8) || (j >= 5 && j <= 8)) return FINGER_COLORS.index;
-      if ((i >= 9 && i <= 12) || (j >= 9 && j <= 12)) return FINGER_COLORS.middle;
-      if ((i >= 13 && i <= 16) || (j >= 13 && j <= 16)) return FINGER_COLORS.ring;
-      if ((i >= 17 && i <= 20) || (j >= 17 && j <= 20)) return FINGER_COLORS.pinky;
-      return FINGER_COLORS.palm;
+    function col(i, j) {
+      if (i <= 4 || j <= 4) return '#FF6B6B';
+      if ((i >= 5 && i <= 8) || (j >= 5 && j <= 8)) return '#4ECDC4';
+      if ((i >= 9 && i <= 12) || (j >= 9 && j <= 12)) return '#FFE66D';
+      if ((i >= 13 && i <= 16) || (j >= 13 && j <= 16)) return '#95E1D3';
+      if ((i >= 17 && i <= 20) || (j >= 17 && j <= 20)) return '#F38181';
+      return '#A8DADC';
     }
+
+    function drawTips(ctx, lm, w, h) {
+      for (let t = 0; t < 5; t++) {
+        const p = lm[TIP_IDX[t]];
+        ctx.beginPath();
+        ctx.arc(p.x * w, p.y * h, 7, 0, Math.PI * 2);
+        ctx.fillStyle = TIP_COL[t];
+        ctx.fill();
+      }
+    }
+
     function drawFull(ctx, lm, w, h) {
-      HAND_CONNECTIONS.forEach(function (pair) {
-        const a = pair[0], b = pair[1];
+      CONN.forEach(([a, b]) => {
         ctx.beginPath();
         ctx.moveTo(lm[a].x * w, lm[a].y * h);
         ctx.lineTo(lm[b].x * w, lm[b].y * h);
-        ctx.strokeStyle = getColor(a, b); ctx.lineWidth = 3; ctx.lineCap = 'round'; ctx.stroke();
+        ctx.strokeStyle = col(a, b);
+        ctx.lineWidth = 3;
+        ctx.lineCap = 'round';
+        ctx.stroke();
       });
-      lm.forEach(function (p, idx) {
+      lm.forEach((p, i) => {
         let r = 3.5, c = '#fff';
-        if (idx === 0) { r = 5.5; c = '#00E5FF'; }
-        else if ([4,8,12,16,20].indexOf(idx) !== -1) { r = 4.8; c = '#FFD700'; }
-        ctx.beginPath(); ctx.arc(p.x * w, p.y * h, r, 0, Math.PI * 2); ctx.fillStyle = c; ctx.fill();
+        if (i === 0) { r = 6; c = '#5BBEFF'; }
+        else if (TIP_IDX.indexOf(i) >= 0) { r = 5; c = '#FFD700'; }
+        ctx.beginPath();
+        ctx.arc(p.x * w, p.y * h, r, 0, Math.PI * 2);
+        ctx.fillStyle = c;
+        ctx.fill();
       });
     }
-    function drawOnBoth(landmarksList) {
-      [canvasL, canvasR].forEach(function (c, idx) {
-        const v = idx === 0 ? videoL : videoR;
+
+    function paint(list) {
+      [canvasL, canvasR].forEach((c, idx) => {
+        const v = idx ? videoR : videoL;
         if (c.width !== v.videoWidth || c.height !== v.videoHeight) {
-          c.width = v.videoWidth || currentQuality.w;
-          c.height = v.videoHeight || currentQuality.h;
+          c.width = v.videoWidth || W;
+          c.height = v.videoHeight || H;
         }
       });
       ctxL.clearRect(0, 0, canvasL.width, canvasL.height);
       ctxR.clearRect(0, 0, canvasR.width, canvasR.height);
-      for (let i = 0; i < landmarksList.length; i++) {
-        const lm = landmarksList[i];
+      list.forEach(lm => {
         if (tipsOnly) {
           drawTips(ctxL, lm, canvasL.width, canvasL.height);
           drawTips(ctxR, lm, canvasR.width, canvasR.height);
@@ -461,72 +571,91 @@
           drawFull(ctxL, lm, canvasL.width, canvasL.height);
           drawFull(ctxR, lm, canvasR.width, canvasR.height);
         }
-      }
+      });
     }
 
-    let hands = null, camera = null, stream = null;
+    let hands, camera, stream;
 
-    function onResults(results) {
-      const detected = results.multiHandLandmarks || [];
-      const smoothedList = [];
-      let anyPinch = false;
-      let primaryLm = null;
+    function onResults(res) {
+      const det = res.multiHandLandmarks || [];
+      const list = [];
+      let pinching = false;
+      let primary = null;
+
       for (let i = 0; i < 2; i++) {
-        if (i < detected.length) {
-          const smoothed = smoothLandmarks(detected[i], i);
-          smoothedList.push(smoothed);
-          if (isPinching(smoothed)) anyPinch = true;
-          if (!primaryLm) primaryLm = smoothed;
+        if (i < det.length) {
+          const s = smoothHand(det[i], i);
+          list.push(s);
+          if (checkPinch(s)) pinching = true;
+          if (!primary) primary = s;
         } else resetSmooth(i);
       }
-      if (gameStarted) {
-        drawOnBoth(smoothedList);
-        handlePinchLogic(anyPinch);
-        if (primaryLm && uiState === 'menu') {
-          const pos = tipToScreen(primaryLm);
-          fingerCursor.style.left = pos.x + 'px';
-          fingerCursor.style.top = pos.y + 'px';
-          fingerCursor.classList.add('visible');
-          updateDwell(pos.x, pos.y);
-        } else if (uiState !== 'menu') {
-          fingerCursor.classList.remove('visible');
-        }
+
+      if (!running) return;
+      paint(list);
+      onPinchFrame(pinching);
+
+      if (primary && ui === 'menu') {
+        const p = tipScreen(primary);
+        cursor.style.left = p.x + 'px';
+        cursor.style.top = p.y + 'px';
+        cursor.classList.add('on');
+        updateDwell(p.x, p.y);
+      } else if (ui !== 'menu') {
+        cursor.classList.remove('on');
       }
     }
 
-    async function startCamera() {
+    async function startCam() {
+      // ЗАДНЯЯ камера
       stream = await navigator.mediaDevices.getUserMedia({
         video: {
-          facingMode: { ideal: 'environment' },
-          width: { ideal: currentQuality.w, max: currentQuality.w },
-          height: { ideal: currentQuality.h, max: currentQuality.h },
+          facingMode: { exact: 'environment' },
+          width: { ideal: W },
+          height: { ideal: H },
           frameRate: { ideal: 30, max: 30 }
         },
         audio: false
+      }).catch(async () => {
+        // fallback если exact не поддерживается
+        return navigator.mediaDevices.getUserMedia({
+          video: {
+            facingMode: 'environment',
+            width: { ideal: W },
+            height: { ideal: H },
+            frameRate: { ideal: 30, max: 30 }
+          },
+          audio: false
+        });
       });
+
       videoL.srcObject = stream;
       videoR.srcObject = stream;
       await Promise.all([videoL.play(), videoR.play()]);
 
       hands = new Hands({
-        locateFile: function (file) {
-          return 'https://cdn.jsdelivr.net/npm/@mediapipe/hands/' + file;
-        }
+        locateFile: f => 'https://cdn.jsdelivr.net/npm/@mediapipe/hands/' + f
       });
       hands.setOptions({
-        maxNumHands: 2, modelComplexity: 0,
-        minDetectionConfidence: 0.5, minTrackingConfidence: 0.4
+        maxNumHands: 2,
+        modelComplexity: 0,
+        minDetectionConfidence: 0.55,
+        minTrackingConfidence: 0.5
       });
       hands.onResults(onResults);
 
       camera = new Camera(videoL, {
-        onFrame: async function () { await hands.send({ image: videoL }); },
-        width: currentQuality.w, height: currentQuality.h
+        onFrame: async () => { await hands.send({ image: videoL }); },
+        width: W,
+        height: H
       });
       camera.start();
-      gameStarted = true;
+      running = true;
+
       try {
-        if (screen.orientation && screen.orientation.lock) await screen.orientation.lock('landscape');
+        if (screen.orientation && screen.orientation.lock) {
+          await screen.orientation.lock('landscape');
+        }
       } catch (e) {}
     }
 
@@ -536,24 +665,31 @@
       if (!/^https?:\/\//i.test(q)) q = 'https://duckduckgo.com/?q=' + encodeURIComponent(q);
       browserFrame.src = q;
     }
-    document.getElementById('btnSearch').addEventListener('click', doSearch);
-    searchInput.addEventListener('keydown', function (e) { if (e.key === 'Enter') doSearch(); });
-    document.getElementById('btnBrowserBack').addEventListener('click', function () {
-      closeBrowserView(); openHandMenu();
-    });
+    document.getElementById('btnSearch').onclick = doSearch;
+    searchInput.addEventListener('keydown', e => { if (e.key === 'Enter') doSearch(); });
+    document.getElementById('btnBrowserBack').onclick = () => {
+      browserView.classList.remove('open');
+      openMenu();
+    };
 
-    document.getElementById('btnFull').addEventListener('click', function () {
+    document.getElementById('btnFull').onclick = () => {
       tipsOnly = false;
       startMenu.classList.add('hidden');
       game.classList.add('active');
-      startCamera().catch(function (err) { console.error(err); });
-    });
-    document.getElementById('btnTips').addEventListener('click', function () {
+      startCam().catch(e => {
+        console.error(e);
+        alert('Не удалось открыть заднюю камеру: ' + e.message);
+      });
+    };
+    document.getElementById('btnTips').onclick = () => {
       tipsOnly = true;
       startMenu.classList.add('hidden');
       game.classList.add('active');
-      startCamera().catch(function (err) { console.error(err); });
-    });
+      startCam().catch(e => {
+        console.error(e);
+        alert('Не удалось открыть заднюю камеру: ' + e.message);
+      });
+    };
   </script>
 </body>
 </html>
