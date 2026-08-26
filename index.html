@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, maximum-scale=1.0">
-  <title>Hand Tracking — Quest Style</title>
+  <title>Hand Tracking</title>
   <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js" crossorigin="anonymous"></script>
   <script src="https://cdn.jsdelivr.net/npm/@mediapipe/hands/hands.js" crossorigin="anonymous"></script>
   <style>
@@ -12,7 +12,6 @@
       width: 100%; height: 100%; overflow: hidden;
       background: #000; font-family: 'Segoe UI', system-ui, sans-serif; color: #fff;
     }
-
     #rotate-hint {
       display: none; position: fixed; inset: 0; z-index: 300;
       background: #0b0f1a; flex-direction: column; align-items: center;
@@ -25,30 +24,40 @@
       }
     }
 
-    /* ===== Старт ===== */
     #startMenu {
       position: fixed; inset: 0; z-index: 100;
       display: flex; flex-direction: column; align-items: center; justify-content: center;
       background: radial-gradient(ellipse at center, #152238 0%, #0a0e18 70%);
-      gap: 16px; padding: 20px;
+      gap: 12px; padding: 20px;
     }
-    #startMenu h1 { font-size: clamp(1.3rem, 4vw, 1.9rem); font-weight: 600; letter-spacing: 1px; }
-    #startMenu .sub { opacity: 0.65; font-size: 0.9rem; margin-bottom: 8px; }
-    .mode-btn {
-      width: min(300px, 75vw); padding: 16px 22px;
+    #startMenu h1 { font-size: clamp(1.3rem, 4vw, 1.9rem); font-weight: 600; }
+    #startMenu .sub { opacity: 0.65; font-size: 0.9rem; margin-bottom: 6px; text-align: center; }
+    .row { display: flex; gap: 10px; flex-wrap: wrap; justify-content: center; margin-bottom: 8px; }
+    .chip {
+      padding: 10px 18px; border-radius: 20px; cursor: pointer;
       border: 1px solid rgba(120,180,255,0.35);
-      border-radius: 20px;
-      background: rgba(30,50,80,0.45);
-      backdrop-filter: blur(12px);
-      color: #fff; font-size: 1rem; cursor: pointer; text-align: left;
-      transition: transform 0.15s, border-color 0.15s, box-shadow 0.15s;
+      background: rgba(30,50,80,0.45); color: #fff; font-size: 0.9rem;
     }
-    .mode-btn:active { transform: scale(0.98); }
-    .mode-btn strong { display: block; font-size: 1.15rem; margin-bottom: 3px; }
-    .mode-btn span { font-size: 0.8rem; opacity: 0.7; }
+    .chip.on {
+      border-color: #5BBEFF;
+      background: rgba(40,100,180,0.55);
+      box-shadow: 0 0 16px rgba(80,180,255,0.35);
+    }
+    .mode-btn {
+      width: min(300px, 75vw); padding: 14px 20px;
+      border: 1px solid rgba(120,180,255,0.35);
+      border-radius: 18px;
+      background: rgba(30,50,80,0.45);
+      color: #fff; font-size: 1rem; cursor: pointer; text-align: left;
+    }
+    .mode-btn strong { display: block; font-size: 1.1rem; margin-bottom: 2px; }
+    .mode-btn span { font-size: 0.78rem; opacity: 0.7; }
     #startMenu.hidden { display: none; }
+    #startError {
+      color: #ff8a80; font-size: 0.85rem; text-align: center; max-width: 90vw;
+      min-height: 1.2em; margin-top: 8px;
+    }
 
-    /* ===== Камера (задняя, 2 панели) ===== */
     #game {
       position: fixed; inset: 0; display: none; flex-direction: row;
       width: 100vw; height: 100vh;
@@ -60,100 +69,70 @@
     }
     .cam-panel:last-child { border-right: none; }
     .cam-panel video, .cam-panel canvas {
-      position: absolute; inset: 0; width: 100%; height: 100%;
-      object-fit: cover;
+      position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover;
     }
+    .cam-panel.mirror video, .cam-panel.mirror canvas { transform: scaleX(-1); }
     .cam-panel video { z-index: 1; }
     .cam-panel canvas { z-index: 2; pointer-events: none; }
-    .cam-label {
-      position: absolute; top: 12px; left: 14px; z-index: 5;
-      padding: 5px 12px; border-radius: 20px;
-      background: rgba(10,15,30,0.55); backdrop-filter: blur(8px);
-      font-size: 0.75rem; color: rgba(180,210,255,0.9);
-      border: 1px solid rgba(120,180,255,0.2);
+
+    #status {
+      position: fixed; top: 10px; left: 50%; transform: translateX(-50%);
+      z-index: 40; padding: 6px 14px; border-radius: 16px;
+      background: rgba(0,0,0,0.6); font-size: 0.8rem;
+      border: 1px solid rgba(120,180,255,0.25);
+      pointer-events: none; white-space: nowrap;
     }
 
-    /* ===== Курсор пальца ===== */
     #cursor {
       position: fixed; width: 28px; height: 28px; border-radius: 50%;
       border: 2px solid rgba(100,200,255,0.95);
       background: rgba(80,180,255,0.25);
-      box-shadow: 0 0 16px rgba(80,180,255,0.6), inset 0 0 8px rgba(255,255,255,0.3);
+      box-shadow: 0 0 16px rgba(80,180,255,0.6);
       z-index: 80; pointer-events: none; display: none;
       transform: translate(-50%, -50%);
     }
     #cursor.on { display: block; }
-    #cursor .ring {
-      position: absolute; inset: -6px; border-radius: 50%;
-      border: 2px solid transparent;
-    }
 
-    /* ===== Quest-style меню ===== */
     #questMenu {
       position: fixed; inset: 0; z-index: 60;
       display: none; align-items: center; justify-content: center;
-      background: rgba(5, 10, 20, 0.55);
-      backdrop-filter: blur(18px);
+      background: rgba(5, 10, 20, 0.55); backdrop-filter: blur(18px);
     }
     #questMenu.open { display: flex; }
-
     .quest-panel {
-      position: relative;
-      padding: 36px 48px 28px;
-      border-radius: 28px;
+      padding: 36px 48px 28px; border-radius: 28px;
       background: linear-gradient(160deg, rgba(40,55,90,0.55), rgba(20,30,55,0.65));
       border: 1px solid rgba(140,180,255,0.28);
-      box-shadow:
-        0 20px 60px rgba(0,0,0,0.45),
-        0 0 40px rgba(60,120,255,0.12),
-        inset 0 1px 0 rgba(255,255,255,0.08);
-      backdrop-filter: blur(24px);
+      box-shadow: 0 20px 60px rgba(0,0,0,0.45), 0 0 40px rgba(60,120,255,0.12);
       display: flex; flex-direction: column; align-items: center; gap: 28px;
       min-width: min(420px, 90vw);
     }
-    .quest-panel::before {
-      content: '';
-      position: absolute; inset: 0; border-radius: 28px;
-      background: radial-gradient(ellipse at 50% 0%, rgba(100,160,255,0.12), transparent 60%);
-      pointer-events: none;
-    }
-    .quest-title {
-      font-size: 1.05rem; font-weight: 500; letter-spacing: 2px;
-      text-transform: uppercase; opacity: 0.85;
-    }
-    .quest-icons {
-      display: flex; gap: 36px; align-items: flex-start; justify-content: center;
-    }
+    .quest-title { font-size: 1.05rem; letter-spacing: 2px; text-transform: uppercase; opacity: 0.85; }
+    .quest-icons { display: flex; gap: 36px; }
     .q-icon {
-      width: 100px; height: 100px;
-      border-radius: 50%;
+      width: 100px; height: 100px; border-radius: 50%;
       background: linear-gradient(145deg, rgba(50,70,110,0.7), rgba(25,40,70,0.8));
       border: 2px solid rgba(130,180,255,0.35);
       display: flex; flex-direction: column; align-items: center; justify-content: center;
       position: relative;
-      box-shadow: 0 8px 24px rgba(0,0,0,0.35), inset 0 1px 0 rgba(255,255,255,0.1);
       transition: transform 0.2s, border-color 0.2s, box-shadow 0.2s;
     }
-    .q-icon .emoji { font-size: 2.4rem; line-height: 1; filter: drop-shadow(0 2px 4px rgba(0,0,0,0.4)); }
+    .q-icon .emoji { font-size: 2.4rem; }
     .q-icon .q-label {
       position: absolute; bottom: -28px; left: 50%; transform: translateX(-50%);
-      font-size: 0.8rem; white-space: nowrap; opacity: 0.85; letter-spacing: 0.5px;
+      font-size: 0.8rem; white-space: nowrap; opacity: 0.85;
     }
     .q-icon.hover {
       transform: scale(1.08);
       border-color: rgba(120,200,255,0.95);
-      box-shadow: 0 0 32px rgba(80,180,255,0.45), 0 8px 24px rgba(0,0,0,0.35);
+      box-shadow: 0 0 32px rgba(80,180,255,0.45);
     }
     .q-icon canvas.prog {
       position: absolute; inset: -5px; width: calc(100% + 10px); height: calc(100% + 10px);
       pointer-events: none;
     }
-    .quest-hint {
-      margin-top: 18px; font-size: 0.78rem; opacity: 0.55; text-align: center;
-      line-height: 1.4;
-    }
+    .quest-hint { margin-top: 18px; font-size: 0.78rem; opacity: 0.55; text-align: center; line-height: 1.4; }
 
-    /* ===== Часы ===== */
     #clockView {
       position: fixed; inset: 0; z-index: 70;
       display: none; flex-direction: column; align-items: center; justify-content: center;
@@ -164,10 +143,9 @@
       font-size: clamp(3rem, 12vw, 5.5rem); font-weight: 300; letter-spacing: 4px;
       text-shadow: 0 0 30px rgba(100,180,255,0.5);
     }
-    #clockView .date { font-size: clamp(1rem, 3.5vw, 1.5rem); opacity: 0.8; font-weight: 300; }
+    #clockView .date { font-size: clamp(1rem, 3.5vw, 1.5rem); opacity: 0.8; }
     #clockView .hint { margin-top: 28px; font-size: 0.8rem; opacity: 0.5; }
 
-    /* ===== Браузер ===== */
     #browserView {
       position: fixed; inset: 0; z-index: 70;
       display: none; flex-direction: column; background: #0b0f1a;
@@ -189,10 +167,7 @@
       color: #fff; font-size: 0.9rem; cursor: pointer; white-space: nowrap;
     }
     #browserFrame { flex: 1; width: 100%; border: none; background: #fff; }
-    .browser-hint {
-      padding: 6px; font-size: 0.72rem; opacity: 0.55; text-align: center;
-      background: rgba(0,0,0,0.35);
-    }
+    .browser-hint { padding: 6px; font-size: 0.72rem; opacity: 0.55; text-align: center; background: rgba(0,0,0,0.35); }
   </style>
 </head>
 <body>
@@ -203,33 +178,39 @@
 
   <div id="startMenu">
     <h1>❄️ Hand Tracking</h1>
-    <p class="sub">Задняя камера · меню как в Quest</p>
-    <button class="mode-btn" id="btnFull">
+    <p class="sub">Сначала выбери камеру, потом режим</p>
+
+    <div class="row">
+      <button class="chip on" id="camFront" type="button">🤳 Фронтальная</button>
+      <button class="chip" id="camBack" type="button">📷 Задняя</button>
+    </div>
+
+    <button class="mode-btn" id="btnFull" type="button">
       <strong>🖐 Полный скелет</strong>
       <span>Все суставы руки</span>
     </button>
-    <button class="mode-btn" id="btnTips">
+    <button class="mode-btn" id="btnTips" type="button">
       <strong>👆 Только кончики</strong>
       <span>Быстрее на слабых телефонах</span>
     </button>
+    <div id="startError"></div>
   </div>
+
+  <div id="status">—</div>
 
   <div id="game">
-    <div class="cam-panel">
+    <div class="cam-panel" id="panelL">
       <video id="videoL" playsinline autoplay muted></video>
       <canvas id="canvasL"></canvas>
-      <div class="cam-label">📷 Задняя · Л</div>
     </div>
-    <div class="cam-panel">
+    <div class="cam-panel" id="panelR">
       <video id="videoR" playsinline autoplay muted></video>
       <canvas id="canvasR"></canvas>
-      <div class="cam-label">📷 Задняя · П</div>
     </div>
   </div>
 
-  <div id="cursor"><div class="ring"></div></div>
+  <div id="cursor"></div>
 
-  <!-- Quest-style меню -->
   <div id="questMenu">
     <div class="quest-panel">
       <div class="quest-title">Меню</div>
@@ -246,8 +227,8 @@
         </div>
       </div>
       <div class="quest-hint">
-        Наведи указательный палец · удержи 3 сек<br>
-        Двойной щипок — закрыть меню
+        Наведи указательный · 3 сек<br>
+        Двойной щипок — закрыть
       </div>
     </div>
   </div>
@@ -261,8 +242,8 @@
   <div id="browserView">
     <div class="browser-bar">
       <input type="text" id="searchInput" placeholder="Поиск..." enterkeyhint="search">
-      <button id="btnSearch">Найти</button>
-      <button id="btnBrowserBack">Назад</button>
+      <button id="btnSearch" type="button">Найти</button>
+      <button id="btnBrowserBack" type="button">Назад</button>
     </div>
     <div class="browser-hint">Двойной щипок — закрыть</div>
     <iframe id="browserFrame" src="about:blank" sandbox="allow-scripts allow-same-origin allow-forms allow-popups"></iframe>
@@ -276,19 +257,24 @@
     const ctxL = canvasL.getContext('2d');
     const ctxR = canvasR.getContext('2d');
     const startMenu = document.getElementById('startMenu');
+    const startError = document.getElementById('startError');
     const game = document.getElementById('game');
+    const statusEl = document.getElementById('status');
     const questMenu = document.getElementById('questMenu');
     const clockView = document.getElementById('clockView');
     const browserView = document.getElementById('browserView');
     const cursor = document.getElementById('cursor');
     const iconClock = document.getElementById('iconClock');
     const iconBrowser = document.getElementById('iconBrowser');
+    const panelL = document.getElementById('panelL');
+    const panelR = document.getElementById('panelR');
     const searchInput = document.getElementById('searchInput');
     const browserFrame = document.getElementById('browserFrame');
 
     let tipsOnly = false;
     let running = false;
-    // game | menu | clock | browser
+    let useFront = true; // фронт по умолчанию — руки видно
+    let mirror = true;
     let ui = 'game';
 
     const TIP_IDX = [4, 8, 12, 16, 20];
@@ -299,28 +285,34 @@
       const m = navigator.deviceMemory || 2;
       return /Android|iPhone|iPad/i.test(navigator.userAgent) && (c <= 4 || m <= 3);
     })();
-
     const W = isWeak ? 480 : 640;
     const H = isWeak ? 360 : 480;
 
-    // ===== Сглаживание: быстрый отклик + меньше тряски =====
-    // One-Euro-like: больше сглаживания когда медленно, меньше когда быстро
-    const MIN_CUTOFF = 0.8;
-    const BETA = 0.4;
-    const D_CUTOFF = 1.0;
-    let smoothState = [null, null]; // {x,y,z,dx,dy,dz,ts}[] per landmark per hand
+    document.getElementById('camFront').onclick = () => {
+      useFront = true;
+      document.getElementById('camFront').classList.add('on');
+      document.getElementById('camBack').classList.remove('on');
+    };
+    document.getElementById('camBack').onclick = () => {
+      useFront = false;
+      document.getElementById('camBack').classList.add('on');
+      document.getElementById('camFront').classList.remove('on');
+    };
 
+    function setStatus(t) { statusEl.textContent = t; }
+
+    // One-Euro smoothing
+    const MIN_CUTOFF = 0.9, BETA = 0.45, D_CUTOFF = 1.0;
+    let smoothState = [null, null];
     function alpha(cutoff, dt) {
-      const tau = 1.0 / (2 * Math.PI * cutoff);
-      return 1.0 / (1.0 + tau / dt);
+      const tau = 1 / (2 * Math.PI * cutoff);
+      return 1 / (1 + tau / dt);
     }
-
     function smoothHand(lm, handIdx) {
       const now = performance.now() / 1000;
       if (!smoothState[handIdx]) {
         smoothState[handIdx] = lm.map(p => ({
-          x: p.x, y: p.y, z: p.z || 0,
-          dx: 0, dy: 0, dz: 0, ts: now
+          x: p.x, y: p.y, z: p.z || 0, dx: 0, dy: 0, dz: 0, ts: now
         }));
         return smoothState[handIdx].map(s => ({ x: s.x, y: s.y, z: s.z }));
       }
@@ -331,17 +323,12 @@
         let dt = now - s.ts;
         if (dt <= 0 || dt > 0.5) dt = 1 / 30;
         s.ts = now;
-
         const nx = lm[i].x, ny = lm[i].y, nz = lm[i].z || 0;
-        // скорость
         const axd = alpha(D_CUTOFF, dt);
         s.dx = axd * ((nx - s.x) / dt) + (1 - axd) * s.dx;
         s.dy = axd * ((ny - s.y) / dt) + (1 - axd) * s.dy;
-        s.dz = axd * ((nz - s.z) / dt) + (1 - axd) * s.dz;
         const speed = Math.sqrt(s.dx * s.dx + s.dy * s.dy);
-
-        const cutoff = MIN_CUTOFF + BETA * speed;
-        const a = alpha(cutoff, dt);
+        const a = alpha(MIN_CUTOFF + BETA * speed, dt);
         s.x = a * nx + (1 - a) * s.x;
         s.y = a * ny + (1 - a) * s.y;
         s.z = a * nz + (1 - a) * s.z;
@@ -349,47 +336,31 @@
       }
       return out;
     }
-
     function resetSmooth(i) { smoothState[i] = null; }
 
-    // ===== Щипок =====
-    const PINCH_DIST = 0.055;
-    let wasPinch = false;
-    let lastPinchUp = 0;
-    let pinchClicks = 0;
-
+    // Pinch
+    let wasPinch = false, lastPinchUp = 0, pinchClicks = 0;
     function handSpan(lm) {
-      const dx = lm[0].x - lm[12].x;
-      const dy = lm[0].y - lm[12].y;
+      const dx = lm[0].x - lm[12].x, dy = lm[0].y - lm[12].y;
       return Math.sqrt(dx * dx + dy * dy);
     }
-
     function checkPinch(lm) {
       const span = handSpan(lm);
-      if (span < 0.05 || span > 0.65) return false;
-      const dx = lm[4].x - lm[8].x;
-      const dy = lm[4].y - lm[8].y;
+      if (span < 0.045 || span > 0.7) return false;
+      const dx = lm[4].x - lm[8].x, dy = lm[4].y - lm[8].y;
       const d = Math.sqrt(dx * dx + dy * dy);
-      // адаптивный порог
-      return d < Math.max(0.035, Math.min(0.09, PINCH_DIST * (span / 0.18)));
+      return d < Math.max(0.035, Math.min(0.1, 0.055 * (span / 0.18)));
     }
-
     function onPinchFrame(pinching) {
-      if (pinching && !wasPinch) {
-        wasPinch = true;
-      } else if (!pinching && wasPinch) {
+      if (pinching && !wasPinch) wasPinch = true;
+      else if (!pinching && wasPinch) {
         wasPinch = false;
         const t = performance.now();
-        if (t - lastPinchUp < 750) pinchClicks++;
-        else pinchClicks = 1;
+        pinchClicks = (t - lastPinchUp < 800) ? pinchClicks + 1 : 1;
         lastPinchUp = t;
-        if (pinchClicks >= 2) {
-          pinchClicks = 0;
-          doublePinch();
-        }
+        if (pinchClicks >= 2) { pinchClicks = 0; doublePinch(); }
       }
     }
-
     function doublePinch() {
       if (ui === 'game') openMenu();
       else if (ui === 'menu') closeMenu();
@@ -441,44 +412,33 @@
     }
     setInterval(() => { if (ui === 'clock') tickClock(); }, 1000);
 
-    // ===== Dwell 3 сек =====
     const DWELL = 3000;
-    let dwellId = null;
-    let dwellT0 = 0;
-
+    let dwellId = null, dwellT0 = 0;
     function resetDwell() {
       dwellId = null; dwellT0 = 0;
-      drawRing(iconClock, 0);
-      drawRing(iconBrowser, 0);
-      iconClock.classList.remove('hover');
-      iconBrowser.classList.remove('hover');
+      drawRing(iconClock, 0); drawRing(iconBrowser, 0);
+      iconClock.classList.remove('hover'); iconBrowser.classList.remove('hover');
     }
-
     function drawRing(el, ratio) {
       const c = el.querySelector('.prog');
       const g = c.getContext('2d');
-      const s = c.width, cx = s / 2, cy = s / 2, r = s / 2 - 4;
+      const s = c.width, cx = s/2, cy = s/2, r = s/2 - 4;
       g.clearRect(0, 0, s, s);
       if (ratio <= 0) return;
       g.beginPath();
-      g.arc(cx, cy, r, -Math.PI / 2, -Math.PI / 2 + ratio * Math.PI * 2);
+      g.arc(cx, cy, r, -Math.PI/2, -Math.PI/2 + ratio * Math.PI * 2);
       g.strokeStyle = 'rgba(120,200,255,0.95)';
-      g.lineWidth = 4;
-      g.lineCap = 'round';
-      g.stroke();
+      g.lineWidth = 4; g.lineCap = 'round'; g.stroke();
     }
-
     function hitIcon(x, y, el) {
       const r = el.getBoundingClientRect();
       return x >= r.left && x <= r.right && y >= r.top && y <= r.bottom;
     }
-
     function updateDwell(x, y) {
       if (ui !== 'menu') return;
       let hit = null;
       if (hitIcon(x, y, iconClock)) hit = 'clock';
       else if (hitIcon(x, y, iconBrowser)) hit = 'browser';
-
       if (hit !== dwellId) {
         dwellId = hit;
         dwellT0 = hit ? performance.now() : 0;
@@ -491,23 +451,18 @@
         if (dwellId === 'clock') { drawRing(iconClock, ratio); drawRing(iconBrowser, 0); }
         else { drawRing(iconBrowser, ratio); drawRing(iconClock, 0); }
         if (ratio >= 1) {
-          const a = dwellId;
-          resetDwell();
-          if (a === 'clock') openClock();
-          else openBrowser();
+          const a = dwellId; resetDwell();
+          if (a === 'clock') openClock(); else openBrowser();
         }
       }
     }
 
-    // Задняя камера БЕЗ зеркала
     function tipScreen(lm) {
-      return {
-        x: lm[8].x * window.innerWidth,
-        y: lm[8].y * window.innerHeight
-      };
+      // если зеркало (фронт) — инвертируем X
+      const x = mirror ? (1 - lm[8].x) * window.innerWidth : lm[8].x * window.innerWidth;
+      return { x, y: lm[8].y * window.innerHeight };
     }
 
-    // ===== Рисование =====
     const CONN = [
       [0,1],[1,2],[2,3],[3,4],[0,5],[5,6],[6,7],[7,8],
       [0,9],[9,10],[10,11],[11,12],[0,13],[13,14],[14,15],[15,16],
@@ -521,7 +476,6 @@
       if ((i >= 17 && i <= 20) || (j >= 17 && j <= 20)) return '#F38181';
       return '#A8DADC';
     }
-
     function drawTips(ctx, lm, w, h) {
       for (let t = 0; t < 5; t++) {
         const p = lm[TIP_IDX[t]];
@@ -531,16 +485,13 @@
         ctx.fill();
       }
     }
-
     function drawFull(ctx, lm, w, h) {
       CONN.forEach(([a, b]) => {
         ctx.beginPath();
         ctx.moveTo(lm[a].x * w, lm[a].y * h);
         ctx.lineTo(lm[b].x * w, lm[b].y * h);
         ctx.strokeStyle = col(a, b);
-        ctx.lineWidth = 3;
-        ctx.lineCap = 'round';
-        ctx.stroke();
+        ctx.lineWidth = 3; ctx.lineCap = 'round'; ctx.stroke();
       });
       lm.forEach((p, i) => {
         let r = 3.5, c = '#fff';
@@ -548,11 +499,9 @@
         else if (TIP_IDX.indexOf(i) >= 0) { r = 5; c = '#FFD700'; }
         ctx.beginPath();
         ctx.arc(p.x * w, p.y * h, r, 0, Math.PI * 2);
-        ctx.fillStyle = c;
-        ctx.fill();
+        ctx.fillStyle = c; ctx.fill();
       });
     }
-
     function paint(list) {
       [canvasL, canvasR].forEach((c, idx) => {
         const v = idx ? videoR : videoL;
@@ -581,7 +530,6 @@
       const list = [];
       let pinching = false;
       let primary = null;
-
       for (let i = 0; i < 2; i++) {
         if (i < det.length) {
           const s = smoothHand(det[i], i);
@@ -590,10 +538,15 @@
           if (!primary) primary = s;
         } else resetSmooth(i);
       }
-
       if (!running) return;
       paint(list);
       onPinchFrame(pinching);
+
+      if (det.length > 0) {
+        setStatus('Рук: ' + det.length + (pinching ? ' · щипок' : '') + ' · двойной щипок = меню');
+      } else {
+        setStatus('Камера работает · покажи руку в кадре');
+      }
 
       if (primary && ui === 'menu') {
         const p = tipScreen(primary);
@@ -607,31 +560,59 @@
     }
 
     async function startCam() {
-      // ЗАДНЯЯ камера
-      stream = await navigator.mediaDevices.getUserMedia({
-        video: {
-          facingMode: { exact: 'environment' },
-          width: { ideal: W },
-          height: { ideal: H },
-          frameRate: { ideal: 30, max: 30 }
-        },
-        audio: false
-      }).catch(async () => {
-        // fallback если exact не поддерживается
-        return navigator.mediaDevices.getUserMedia({
+      startError.textContent = '';
+      setStatus('Запрос камеры...');
+
+      // Важно: file:// часто блокирует камеру. Нужен http/https или localhost.
+      if (location.protocol === 'file:') {
+        startError.textContent = 'Открой файл через localhost или залей на хостинг (http/https). file:// часто блокирует камеру.';
+      }
+
+      const facing = useFront ? 'user' : 'environment';
+      mirror = useFront;
+
+      panelL.classList.toggle('mirror', mirror);
+      panelR.classList.toggle('mirror', mirror);
+
+      try {
+        stream = await navigator.mediaDevices.getUserMedia({
           video: {
-            facingMode: 'environment',
+            facingMode: { ideal: facing },
             width: { ideal: W },
             height: { ideal: H },
             frameRate: { ideal: 30, max: 30 }
           },
           audio: false
         });
-      });
+      } catch (e1) {
+        try {
+          stream = await navigator.mediaDevices.getUserMedia({
+            video: true,
+            audio: false
+          });
+          startError.textContent = 'Нужная камера недоступна, включена камера по умолчанию.';
+        } catch (e2) {
+          startError.textContent = 'Камера недоступна: ' + (e2.message || e2.name);
+          setStatus('Ошибка камеры');
+          throw e2;
+        }
+      }
 
       videoL.srcObject = stream;
       videoR.srcObject = stream;
-      await Promise.all([videoL.play(), videoR.play()]);
+
+      await Promise.all([
+        new Promise(r => { videoL.onloadeddata = r; videoL.play().catch(() => {}); }),
+        new Promise(r => { videoR.onloadeddata = r; videoR.play().catch(() => {}); })
+      ]);
+
+      setStatus('Загрузка модели MediaPipe...');
+
+      if (typeof Hands === 'undefined') {
+        startError.textContent = 'MediaPipe не загрузился. Нужен интернет.';
+        setStatus('Нет MediaPipe');
+        throw new Error('Hands undefined');
+      }
 
       hands = new Hands({
         locateFile: f => 'https://cdn.jsdelivr.net/npm/@mediapipe/hands/' + f
@@ -639,18 +620,26 @@
       hands.setOptions({
         maxNumHands: 2,
         modelComplexity: 0,
-        minDetectionConfidence: 0.55,
-        minTrackingConfidence: 0.5
+        minDetectionConfidence: 0.5,
+        minTrackingConfidence: 0.45
       });
       hands.onResults(onResults);
 
       camera = new Camera(videoL, {
-        onFrame: async () => { await hands.send({ image: videoL }); },
+        onFrame: async () => {
+          try { await hands.send({ image: videoL }); }
+          catch (e) { console.warn(e); }
+        },
         width: W,
         height: H
       });
-      camera.start();
+      await camera.start();
       running = true;
+      setStatus('Готово · покажи руку');
+
+      if (!useFront) {
+        setStatus('Задняя камера · наведи её на руки');
+      }
 
       try {
         if (screen.orientation && screen.orientation.lock) {
@@ -672,24 +661,21 @@
       openMenu();
     };
 
-    document.getElementById('btnFull').onclick = () => {
-      tipsOnly = false;
+    function boot(tips) {
+      tipsOnly = tips;
       startMenu.classList.add('hidden');
       game.classList.add('active');
       startCam().catch(e => {
         console.error(e);
-        alert('Не удалось открыть заднюю камеру: ' + e.message);
+        startMenu.classList.remove('hidden');
+        game.classList.remove('active');
+        if (!startError.textContent) {
+          startError.textContent = 'Ошибка: ' + (e.message || e);
+        }
       });
-    };
-    document.getElementById('btnTips').onclick = () => {
-      tipsOnly = true;
-      startMenu.classList.add('hidden');
-      game.classList.add('active');
-      startCam().catch(e => {
-        console.error(e);
-        alert('Не удалось открыть заднюю камеру: ' + e.message);
-      });
-    };
+    }
+    document.getElementById('btnFull').onclick = () => boot(false);
+    document.getElementById('btnTips').onclick = () => boot(true);
   </script>
 </body>
 </html>
