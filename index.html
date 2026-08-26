@@ -18,10 +18,10 @@
 
     #stage{position:fixed;inset:0;display:none}
     #stage.on{display:block}
-    #video,#canvas{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
+    #video,#canvas{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;transform:none!important}
     #video{z-index:1}
     #canvas{z-index:5;pointer-events:none}
-    /* БЕЗ scaleX(-1): правая рука = справа на экране */
+    /* Без зеркала: как в жизни, правая рука справа */
 
     #hud{position:fixed;top:10px;left:50%;transform:translateX(-50%);z-index:50;padding:6px 14px;border-radius:16px;background:rgba(0,0,0,.55);font-size:.75rem;border:1px solid rgba(120,180,255,.25);pointer-events:none;max-width:94vw;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 
@@ -139,22 +139,38 @@
     clearTimeout(showToast._t);showToast._t=setTimeout(()=>toast.classList.remove('show'),ms);
   }
 
-  // ===== Prediction (4) — простая экстраполяция =====
-  const hist=[[],[]]; // last 3 positions per hand landmark 0
-  function predictLm(lm,handIdx){
-    const h=hist[handIdx];
-    const cx=lm[0].x,cy=lm[0].y;
-    h.push({x:cx,y:cy,t:performance.now()});
-    if(h.length>3)h.shift();
-    if(h.length<2)return lm.map(p=>({x:p.x,y:p.y,z:p.z||0}));
-    const a=h[h.length-2],b=h[h.length-1];
-    const dt=Math.max((b.t-a.t)/1000,1/60);
-    const vx=(b.x-a.x)/dt,vy=(b.y-a.y)/dt;
-    // предсказание на ~1 кадр (16ms)
-    const look=0.016;
-    const out=lm.map(p=>({x:p.x+vx*look*0.35,y:p.y+vy*look*0.35,z:p.z||0}));
+  // ===== Быстрый трекинг: почти сырые точки, без лага =====
+  // One-Euro: при быстром движении alpha → 1 (без задержки), при дрожи чуть сглаживает
+  const filt=[[null],[null]];
+  function filterLm(lm, handIdx){
+    const now=performance.now()/1000;
+    if(!filt[handIdx][0]){
+      filt[handIdx]=lm.map(p=>({x:p.x,y:p.y,z:p.z||0,dx:0,dy:0,ts:now}));
+      return filt[handIdx].map(s=>({x:s.x,y:s.y,z:s.z}));
+    }
+    const st=filt[handIdx];
+    const out=[];
+    for(let i=0;i<lm.length;i++){
+      const s=st[i];
+      let dt=now-s.ts; if(dt<=0||dt>0.1) dt=1/60;
+      s.ts=now;
+      const nx=lm[i].x, ny=lm[i].y, nz=lm[i].z||0;
+      // скорость
+      const ad=1/(1+(1/(2*Math.PI*1.5))/dt);
+      s.dx=ad*((nx-s.x)/dt)+(1-ad)*s.dx;
+      s.dy=ad*((ny-s.y)/dt)+(1-ad)*s.dy;
+      const speed=Math.hypot(s.dx,s.dy);
+      // cutoff растёт со скоростью → меньше лага
+      const cutoff=1.2+4.0*speed;
+      const a=1/(1+(1/(2*Math.PI*cutoff))/dt);
+      s.x=a*nx+(1-a)*s.x;
+      s.y=a*ny+(1-a)*s.y;
+      s.z=a*nz+(1-a)*s.z;
+      out.push({x:s.x,y:s.y,z:s.z});
+    }
     return out;
   }
+  function resetFilt(i){filt[i]=[null]}
 
   // ===== Hand fade on loss (5) =====
   const handAlpha=[0,0];
@@ -585,7 +601,7 @@
       lastSeen[i]=now;
       // fade in
       handAlpha[i]=Math.min(1,handAlpha[i]+0.15);
-      const pred=predictLm(rh.lm,i);
+      const pred=filterLm(rh.lm,i);
       const conf=rh.score;
       const weak=conf<0.75; // (6)
       const alpha=handAlpha[i]*Math.max(0.2,conf);
@@ -601,7 +617,7 @@
     for(let i=0;i<2;i++){
       if(i>=rawHands.length){
         handAlpha[i]=Math.max(0,handAlpha[i]-0.08);
-        hist[i]=[];
+        resetFilt(i);
         if(HS[i].grab){HS[i].grab.el.classList.remove('grabbed');HS[i].grab.grabbedBy=-1;HS[i].grab=null}
         HS[i].was=false;
       }
@@ -659,20 +675,27 @@
     hands=new Hands({locateFile:f=>'https://cdn.jsdelivr.net/npm/@mediapipe/hands/'+f});
     hands.setOptions({
       maxNumHands:2,
-      modelComplexity:isWeak?0:1,
-      minDetectionConfidence:0.55,
-      minTrackingConfidence:0.5
+      modelComplexity:0, // быстрее
+      minDetectionConfidence:0.5,
+      minTrackingConfidence:0.4
     });
     hands.onResults(onResults);
+    // не копим кадры: если ещё обрабатываем — пропускаем
+    let busy=false;
     camera=new Camera(video,{
-      onFrame:async()=>{try{await hands.send({image:video})}catch(e){}},
+      onFrame:async()=>{
+        if(busy)return;
+        busy=true;
+        try{await hands.send({image:video})}catch(e){}
+        busy=false;
+      },
       width:W,height:H
     });
     await camera.start();
     running=true;
     boot.classList.add('hidden');
     stage.classList.add('on');
-    showToast('Камера без зеркала · правая рука справа');
+    showToast('Без зеркала · быстрый трекинг');
     try{if(screen.orientation?.lock)await screen.orientation.lock('landscape')}catch(e){}
   }
   document.getElementById('btnStart').onclick=()=>start().catch(e=>{console.error(e);if(!errEl.textContent)errEl.textContent=String(e.message||e)});
