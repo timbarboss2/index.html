@@ -1,0 +1,133 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
+<title>EnJoyMR Web — Fan Edition</title>
+<style>
+:root{--glass:rgba(13,17,27,.76);--line:rgba(255,255,255,.13);--txt:#f5f7fb;--muted:#aab4c7}
+*{box-sizing:border-box}html,body{margin:0;width:100%;height:100%;overflow:hidden;background:#060910;color:var(--txt);font-family:Inter,Arial,sans-serif;touch-action:none}
+#video{position:fixed;inset:0;width:100%;height:100%;object-fit:cover;background:#070a10}
+#webgl{position:fixed;inset:0;width:100%;height:100%;pointer-events:none}
+#shade{position:fixed;inset:0;background:radial-gradient(circle at 50% 35%,transparent 15%,rgba(0,0,0,.22) 100%);pointer-events:none}
+.glass{background:var(--glass);border:1px solid var(--line);box-shadow:0 14px 50px #0007;backdrop-filter:blur(18px);-webkit-backdrop-filter:blur(18px)}
+#top{position:fixed;z-index:5;top:max(12px,env(safe-area-inset-top));left:12px;right:12px;display:flex;align-items:center;justify-content:space-between;gap:10px;pointer-events:none}
+.brand{padding:10px 14px;border-radius:17px;font-weight:900;letter-spacing:.2px}.brand span{opacity:.55;font-weight:700}
+.info{padding:9px 12px;border-radius:16px;font-size:12px;color:var(--muted)}
+#cross{position:fixed;z-index:2;left:50%;top:50%;width:28px;height:28px;transform:translate(-50%,-50%);opacity:.28;pointer-events:none}
+#cross:before,#cross:after{content:"";position:absolute;background:#fff}.cross:before{width:28px;height:1px;top:13px;left:0}.cross:after{height:28px;width:1px;left:13px;top:0}
+#dock{position:fixed;z-index:8;left:50%;bottom:max(14px,env(safe-area-inset-bottom));transform:translateX(-50%);display:flex;gap:8px;padding:9px;border-radius:23px;pointer-events:auto}
+.dockbtn{width:53px;height:53px;border:1px solid #fff1;border-radius:16px;background:#ffffff0b;color:#fff;font-size:22px}.dockbtn:active{transform:scale(.93)}
+#toast{position:fixed;z-index:30;left:50%;bottom:95px;transform:translateX(-50%) translateY(15px);opacity:0;padding:10px 14px;border-radius:15px;font-size:13px;transition:.25s;pointer-events:none}.show{opacity:1!important;transform:translateX(-50%) translateY(0)!important}
+#intro,#rotate{position:fixed;z-index:100;inset:0;display:flex;align-items:center;justify-content:center;padding:20px;background:linear-gradient(145deg,#05070c,#10192a)}
+#rotate{display:none;text-align:center;font-size:24px;font-weight:900}.introbox{width:min(520px,100%);padding:30px;border-radius:30px;text-align:center}.introbox h1{font-size:39px;margin:0}.introbox p{color:var(--muted);line-height:1.5}.primary{width:100%;padding:15px;border:0;border-radius:17px;background:#fff;color:#080a0f;font-weight:900;font-size:17px}
+.panel{position:fixed;z-index:20;display:none;left:5%;right:5%;top:8%;bottom:12%;max-width:760px;margin:auto;border-radius:25px;padding:18px;overflow:auto;pointer-events:auto}
+.panel h2{margin:3px 0 15px}.close{float:right;border:0;border-radius:12px;padding:8px 11px;background:#ffffff0b;color:#fff;font-weight:800}
+.grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}.item{padding:15px;border-radius:19px;background:#ffffff07;border:1px solid #fff1}.item .icon{font-size:32px}.item b{display:block;margin:7px 0}.item small{color:var(--muted);line-height:1.4}.item button{width:100%;margin-top:12px;padding:10px;border:0;border-radius:12px;font-weight:800}
+.window{position:fixed;z-index:15;width:300px;min-height:170px;border-radius:20px;overflow:hidden;display:none;pointer-events:auto;background:#080c14eF;border:1px solid #fff2;box-shadow:0 25px 80px #000b;backdrop-filter:blur(18px)}.windowbar{height:40px;padding:10px 12px;display:flex;justify-content:space-between;background:#fff08;font-size:13px;font-weight:800;cursor:move}.windowbody{padding:16px;color:#d4dbea}.winclose{cursor:pointer;color:#ff9696}
+input,select{max-width:100%;padding:10px;border:0;border-radius:11px;background:#eef2f7;color:#111}.row{display:flex;gap:8px;align-items:center;margin:9px 0}.row>*{flex:1}
+#gesture{position:fixed;z-index:6;right:15px;bottom:95px;padding:9px 12px;border-radius:15px;font-size:11px;color:#b7c3d7;display:none}
+#objects{position:fixed;z-index:7;inset:0;pointer-events:none}.obj{position:absolute;pointer-events:auto;width:62px;height:62px;border-radius:17px;display:flex;align-items:center;justify-content:center;font-size:31px;background:#101827dd;border:1px solid #fff2;box-shadow:0 12px 35px #0009}
+@media(max-width:700px){.grid{grid-template-columns:1fr}.window{width:240px}}
+@media(orientation:portrait){#rotate{display:flex}}
+</style>
+</head>
+<body>
+<video id="video" autoplay playsinline muted></video><canvas id="webgl"></canvas><div id="shade"></div>
+<div id="rotate">📱<br>ПОВЕРНИ ТЕЛЕФОН ГОРИЗОНТАЛЬНО</div>
+
+<div id="intro"><div class="introbox glass">
+<h1>EnJoyMR <span style="opacity:.45">WEB</span></h1>
+<p>Фанатская браузерная MR-платформа. Камера, пространственные окна, 3D-объекты, магазин и мини-приложения.</p>
+<button class="primary" id="launch">ЗАПУСТИТЬ</button>
+<p style="font-size:12px">Камера работает только после разрешения браузера и обычно требует HTTPS или localhost.</p>
+</div></div>
+
+<div id="top"><div class="brand glass">EnJoyMR <span>Web</span></div><div class="info glass" id="state">MR OFFLINE</div></div>
+<div id="cross" class="cross"></div>
+<div id="objects"></div>
+<div id="gesture" class="glass">✋ Hand tracking: ready</div>
+
+<div id="dock" class="glass">
+<button class="dockbtn" id="home">⌂</button><button class="dockbtn" id="storeBtn">▦</button>
+<button class="dockbtn" id="add">✚</button><button class="dockbtn" id="browserBtn">🌐</button>
+<button class="dockbtn" id="gamesBtn">🎮</button><button class="dockbtn" id="settingsBtn">⚙</button>
+</div>
+<div id="toast" class="glass"></div>
+
+<div class="panel glass" id="store"><button class="close">✕</button><h2>EnJoyMR Store</h2>
+<div class="grid">
+<div class="item"><div class="icon">🎯</div><b>MR Target</b><small>Тренировка реакции в смешанной реальности.</small><button onclick="targetGame()">Запустить</button></div>
+<div class="item"><div class="icon">🐾</div><b>MR Pet</b><small>Виртуальный питомец появляется в комнате.</small><button onclick="pet()">Запустить</button></div>
+<div class="item"><div class="icon">🎨</div><b>MR Paint</b><small>Создание плавающих виртуальных точек.</small><button onclick="paint()">Запустить</button></div>
+<div class="item"><div class="icon">🧱</div><b>Room Lab</b><small>Экспериментальная сцена с объектами.</small><button onclick="roomLab()">Запустить</button></div>
+</div></div>
+
+<div class="panel glass" id="games"><button class="close">✕</button><h2>Игры</h2>
+<div class="grid">
+<div class="item"><div class="icon">🎯</div><b>Target Hunt</b><small>Нажимай на появляющиеся цели.</small><button onclick="targetGame()">Играть</button></div>
+<div class="item"><div class="icon">🧊</div><b>Cube Lab</b><small>Размещай 3D-кубы вокруг себя.</small><button onclick="roomLab()">Играть</button></div>
+</div></div>
+
+<div class="window" id="browser"><div class="windowbar"><span>🌐 Browser</span><span class="winclose">✕</span></div>
+<div class="windowbody"><input id="query" placeholder="Адрес или запрос" style="width:100%"><button id="search" style="margin-top:10px;padding:10px 14px;border:0;border-radius:11px;font-weight:800">Открыть</button><p id="browserMsg">Окно браузера в MR Home.</p></div></div>
+
+<div class="window" id="settings"><div class="windowbar"><span>⚙ Настройки</span><span class="winclose">✕</span></div>
+<div class="windowbody">
+<div class="row"><span>Эффекты</span><select id="effects"><option>Высокие</option><option>Средние</option><option>Низкие</option></select></div>
+<div class="row"><span>Трекинг</span><b>Web Hand API</b></div>
+<div class="row"><span>Камера</span><b id="camState">Не запущена</b></div>
+<p style="color:#aab4c7;font-size:12px">Это браузерная фанатская реализация, поэтому возможности зависят от браузера и устройства.</p>
+</div></div>
+
+<script src="https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.min.js"></script>
+<script>
+let scene,cam3d,renderer,started=false,dragObj=null,score=0;
+const $=id=>document.getElementById(id);
+function toast(t){$('toast').textContent=t;$('toast').classList.add('show');clearTimeout(window.tt);window.tt=setTimeout(()=>$('toast').classList.remove('show'),1400)}
+function show(el){el.style.display='block'}function hide(el){el.style.display='none'}
+async function launch(){
+ try{
+  const s=await navigator.mediaDevices.getUserMedia({video:{facingMode:{ideal:'environment'},width:{ideal:1280},height:{ideal:720}},audio:false});
+  $('video').srcObject=s;$('state').textContent='MR ONLINE';$('camState').textContent='Работает';
+ }catch(e){$('state').textContent='MR CAMERA DENIED';toast('Разреши доступ к камере')}
+ started=true;init3d();$('intro').style.display='none';$('gesture').style.display='block';toast('MR запущен');
+}
+function init3d(){
+ scene=new THREE.Scene();cam3d=new THREE.PerspectiveCamera(68,innerWidth/innerHeight,.01,100);cam3d.position.z=4;
+ renderer=new THREE.WebGLRenderer({canvas:$('webgl'),alpha:true,antialias:true});renderer.setPixelRatio(Math.min(devicePixelRatio,1.7));renderer.setSize(innerWidth,innerHeight);
+ scene.add(new THREE.HemisphereLight(0xffffff,0x202040,2));
+ const grid=new THREE.GridHelper(8,16,0x55aaff,0x1c3150);grid.position.y=-1.25;grid.material.transparent=true;grid.material.opacity=.2;scene.add(grid);
+ animate();
+}
+function animate(){requestAnimationFrame(animate);if(scene){scene.children.forEach(o=>{if(o.userData.spin){o.rotation.x+=.007;o.rotation.y+=.01}});renderer.render(scene,cam3d)}}
+function add3d(){
+ if(!scene){toast('Сначала запусти MR');return}
+ const m=new THREE.MeshStandardMaterial({color:new THREE.Color().setHSL(Math.random(),.7,.58),metalness:.2,roughness:.35});
+ const mesh=new THREE.Mesh(new THREE.BoxGeometry(.55,.55,.55),m);mesh.position.set((Math.random()-.5)*2.8,(Math.random()-.5)*1.5,0);mesh.userData.spin=true;scene.add(mesh);toast('3D-объект создан');
+}
+function virtualObj(emoji){
+ const o=document.createElement('div');o.className='obj';o.textContent=emoji;o.style.left=(20+Math.random()*60)+'%';o.style.top=(18+Math.random()*55)+'%';$('objects').appendChild(o);
+ let sx,sy,sl,st;
+ o.onpointerdown=e=>{o.setPointerCapture(e.pointerId);sx=e.clientX;sy=e.clientY;sl=o.offsetLeft;st=o.offsetTop;dragObj=o};
+ o.onpointermove=e=>{if(dragObj===o){o.style.left=(sl+e.clientX-sx)+'px';o.style.top=(st+e.clientY-sy)+'px'}};
+ o.onpointerup=()=>dragObj=null;o.onclick=()=>toast('MR-объект выбран');
+}
+function targetGame(){closePanels();for(let i=0;i<5;i++)setTimeout(()=>virtualObj('🎯'),i*450);toast('Target Hunt запущен')}
+function pet(){closePanels();virtualObj('🐾');toast('Питомец появился')}
+function paint(){closePanels();for(let i=0;i<12;i++)setTimeout(()=>virtualObj('🔵'),i*120);toast('MR Paint запущен')}
+function roomLab(){closePanels();for(let i=0;i<6;i++)setTimeout(()=>{add3d();virtualObj('🧊')},i*180);toast('Room Lab запущен')}
+function closePanels(){document.querySelectorAll('.panel').forEach(hide)}
+$('launch').onclick=launch;$('add').onclick=()=>{add3d();virtualObj('🧊')};
+$('storeBtn').onclick=()=>show($('store'));$('gamesBtn').onclick=()=>show($('games'));
+$('browserBtn').onclick=()=>{show($('browser'));center($('browser'))};$('settingsBtn').onclick=()=>{show($('settings'));center($('settings'))};
+$('home').onclick=()=>{closePanels();document.querySelectorAll('.window').forEach(hide);toast('Home')};
+document.querySelectorAll('.close').forEach(x=>x.onclick=()=>hide(x.parentElement));
+document.querySelectorAll('.winclose').forEach(x=>x.onclick=()=>hide(x.closest('.window')));
+function center(el){el.style.left='50%';el.style.top='25%';el.style.transform='translateX(-50%)'}
+$('search').onclick=()=>{$('browserMsg').textContent=$('query').value?'Поиск: '+$('query').value:'Введите запрос.'};
+addEventListener('resize',()=>{if(cam3d&&renderer){cam3d.aspect=innerWidth/innerHeight;cam3d.updateProjectionMatrix();renderer.setSize(innerWidth,innerHeight)}});
+document.addEventListener('keydown',e=>{if(e.key==='Escape')closePanels()});
+</script>
+</body>
+</html>
