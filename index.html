@@ -1,0 +1,1114 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>EnJoyTheMR</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        body {
+            background-color: #0a0a0f;
+            color: #ffffff;
+            overflow-x: hidden;
+            line-height: 1.6;
+        }
+
+        header {
+            position: fixed;
+            top: 0;
+            width: 100%;
+            padding: 20px 5%;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: rgba(10, 10, 15, 0.8);
+            backdrop-filter: blur(10px);
+            z-index: 1000;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+        }
+
+        .logo {
+            font-size: 1.8rem;
+            font-weight: 800;
+            background: linear-gradient(135deg, #00f2fe, #4facfe, #ff007f);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            letter-spacing: 1px;
+        }
+
+        nav ul {
+            display: flex;
+            list-style: none;
+            gap: 30px;
+        }
+
+        nav a {
+            color: #ccc;
+            text-decoration: none;
+            font-weight: 500;
+            transition: color 0.3s;
+            cursor: pointer;
+        }
+
+        nav a:hover {
+            color: #00f2fe;
+        }
+
+        .hero {
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            text-align: center;
+            padding: 0 20px;
+            position: relative;
+            background: radial-gradient(circle at 50% 50%, #1a1a2e 0%, #0a0a0f 100%);
+        }
+
+        .hero::before, .hero::after {
+            content: '';
+            position: absolute;
+            border-radius: 50%;
+            filter: blur(100px);
+            opacity: 0.4;
+            z-index: 0;
+        }
+
+        .hero::before {
+            width: 400px;
+            height: 400px;
+            background: #ff007f;
+            top: 20%;
+            left: 10%;
+            animation: float 8s ease-in-out infinite;
+        }
+
+        .hero::after {
+            width: 500px;
+            height: 500px;
+            background: #00f2fe;
+            bottom: 10%;
+            right: 10%;
+            animation: float 10s ease-in-out infinite reverse;
+        }
+
+        @keyframes float {
+            0%, 100% { transform: translateY(0) translateX(0); }
+            50% { transform: translateY(-30px) translateX(20px); }
+        }
+
+        .hero-content {
+            z-index: 1;
+            max-width: 800px;
+        }
+
+        .hero h1 {
+            font-size: 4rem;
+            margin-bottom: 20px;
+            background: linear-gradient(to right, #ffffff, #a1a1aa);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .hero p {
+            font-size: 1.25rem;
+            color: #a1a1aa;
+            margin-bottom: 40px;
+        }
+
+        .btn {
+            display: inline-block;
+            padding: 15px 40px;
+            background: linear-gradient(135deg, #00f2fe, #4facfe);
+            color: #0a0a0f;
+            text-decoration: none;
+            font-weight: 700;
+            border-radius: 50px;
+            transition: transform 0.3s, box-shadow 0.3s;
+            box-shadow: 0 10px 20px rgba(0, 242, 254, 0.2);
+            border: none;
+            cursor: pointer;
+            font-size: 1rem;
+        }
+
+        .btn:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 15px 30px rgba(0, 242, 254, 0.4);
+        }
+
+        .features {
+            padding: 100px 5%;
+            background-color: #0f0f17;
+        }
+
+        .section-title {
+            text-align: center;
+            font-size: 2.5rem;
+            margin-bottom: 60px;
+            color: #fff;
+        }
+
+        .features-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 30px;
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .feature-card {
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            padding: 40px;
+            border-radius: 20px;
+            transition: transform 0.3s, background 0.3s;
+        }
+
+        .feature-card:hover {
+            transform: translateY(-10px);
+            background: rgba(255, 255, 255, 0.06);
+            border-color: rgba(0, 242, 254, 0.3);
+        }
+
+        .feature-icon {
+            font-size: 2.5rem;
+            margin-bottom: 20px;
+        }
+
+        .feature-card h3 {
+            font-size: 1.5rem;
+            margin-bottom: 15px;
+            color: #00f2fe;
+        }
+
+        .feature-card p {
+            color: #a1a1aa;
+            margin-bottom: 25px;
+        }
+
+        .feedback-btn {
+            display: inline-block;
+            padding: 12px 30px;
+            background: transparent;
+            color: #00f2fe;
+            border: 2px solid #00f2fe;
+            font-weight: 600;
+            border-radius: 50px;
+            transition: all 0.3s;
+            cursor: pointer;
+            font-size: 1rem;
+        }
+
+        .feedback-btn:hover {
+            background: #00f2fe;
+            color: #0a0a0f;
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0, 242, 254, 0.3);
+        }
+
+        .feedback-btn.hidden {
+            display: none;
+        }
+
+        .reviewed-badge {
+            display: none;
+            align-items: center;
+            gap: 8px;
+            padding: 10px 20px;
+            background: rgba(0, 242, 254, 0.1);
+            border: 1px solid rgba(0, 242, 254, 0.2);
+            border-radius: 50px;
+            color: #00f2fe;
+            font-size: 0.9rem;
+            font-weight: 500;
+        }
+
+        .reviewed-badge.show {
+            display: inline-flex;
+        }
+
+        .toast {
+            position: fixed;
+            bottom: 30px;
+            right: 30px;
+            background: linear-gradient(135deg, #00f2fe, #4facfe);
+            color: #0a0a0f;
+            padding: 20px 30px;
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0, 242, 254, 0.4);
+            font-weight: 600;
+            transform: translateX(400px);
+            transition: transform 0.4s ease;
+            z-index: 5000;
+            max-width: 350px;
+        }
+
+        .toast.show {
+            transform: translateX(0);
+        }
+
+        .toast-content {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+
+        .toast-icon {
+            font-size: 1.5rem;
+        }
+
+        .info-page {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: #0a0a0f;
+            z-index: 3000;
+            overflow-y: auto;
+            opacity: 0;
+            visibility: hidden;
+            transition: opacity 0.5s ease, visibility 0.5s ease;
+        }
+
+        .info-page.active {
+            opacity: 1;
+            visibility: visible;
+        }
+
+        .info-page-content {
+            max-width: 1000px;
+            margin: 0 auto;
+            padding: 80px 5% 60px;
+        }
+
+        .info-page-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 60px;
+            padding-bottom: 30px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .back-btn {
+            padding: 10px 25px;
+            background: transparent;
+            color: #00f2fe;
+            border: 2px solid #00f2fe;
+            border-radius: 50px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.3s;
+            font-size: 0.95rem;
+        }
+
+        .back-btn:hover {
+            background: #00f2fe;
+            color: #0a0a0f;
+        }
+
+        .info-title {
+            font-size: 3rem;
+            margin-bottom: 30px;
+            background: linear-gradient(135deg, #00f2fe, #ff007f);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            text-align: center;
+        }
+
+        .info-subtitle {
+            font-size: 1.3rem;
+            color: #a1a1aa;
+            text-align: center;
+            margin-bottom: 50px;
+            max-width: 700px;
+            margin-left: auto;
+            margin-right: auto;
+        }
+
+        .posts-container {
+            display: grid;
+            gap: 25px;
+            margin-bottom: 50px;
+        }
+
+        .post-item {
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            padding: 30px;
+            border-radius: 15px;
+            transition: transform 0.3s, border-color 0.3s;
+        }
+
+        .post-item:hover {
+            transform: translateY(-5px);
+            border-color: rgba(0, 242, 254, 0.3);
+        }
+
+        .post-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+
+        .post-title {
+            color: #00f2fe;
+            font-size: 1.5rem;
+            font-weight: 600;
+        }
+
+        .post-date {
+            color: #666;
+            font-size: 0.9rem;
+        }
+
+        .post-content {
+            color: #c0c0c0;
+            line-height: 1.7;
+            white-space: pre-wrap;
+            margin-bottom: 15px;
+        }
+
+        .post-image {
+            width: 100%;
+            max-height: 500px;
+            object-fit: cover;
+            border-radius: 12px;
+            margin-top: 15px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .delete-btn {
+            background: transparent;
+            border: 1px solid #ff007f;
+            color: #ff007f;
+            padding: 8px 15px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 0.85rem;
+            transition: all 0.3s;
+            margin-top: 15px;
+        }
+
+        .delete-btn:hover {
+            background: #ff007f;
+            color: #fff;
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 60px 20px;
+            color: #666;
+        }
+
+        .empty-state-icon {
+            font-size: 4rem;
+            margin-bottom: 20px;
+            opacity: 0.3;
+        }
+
+        .modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.8);
+            z-index: 4000;
+            display: none;
+            justify-content: center;
+            align-items: center;
+            backdrop-filter: blur(5px);
+            padding: 20px;
+        }
+
+        .modal.active {
+            display: flex;
+        }
+
+        .modal-content {
+            background: #1a1a2e;
+            padding: 40px;
+            border-radius: 20px;
+            max-width: 500px;
+            width: 100%;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            max-height: 90vh;
+            overflow-y: auto;
+        }
+
+        .modal-title {
+            font-size: 1.8rem;
+            margin-bottom: 25px;
+            text-align: center;
+            color: #00f2fe;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            color: #a1a1aa;
+            font-size: 0.95rem;
+        }
+
+        .form-group input[type="text"],
+        .form-group input[type="password"],
+        .form-group textarea {
+            width: 100%;
+            padding: 12px 15px;
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 10px;
+            color: #fff;
+            font-size: 1rem;
+            transition: border-color 0.3s;
+        }
+
+        .form-group input[type="text"]:focus,
+        .form-group input[type="password"]:focus,
+        .form-group textarea:focus {
+            outline: none;
+            border-color: #00f2fe;
+        }
+
+        .form-group textarea {
+            resize: vertical;
+            min-height: 120px;
+            font-family: inherit;
+        }
+
+        .file-upload {
+            position: relative;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 25px;
+            border: 2px dashed rgba(0, 242, 254, 0.3);
+            border-radius: 12px;
+            background: rgba(255, 255, 255, 0.02);
+            cursor: pointer;
+            transition: all 0.3s;
+            text-align: center;
+        }
+
+        .file-upload:hover {
+            border-color: #00f2fe;
+            background: rgba(0, 242, 254, 0.05);
+        }
+
+        .file-upload input[type="file"] {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            opacity: 0;
+            cursor: pointer;
+        }
+
+        .file-upload-icon {
+            font-size: 2rem;
+            margin-bottom: 10px;
+        }
+
+        .file-upload-text {
+            color: #a1a1aa;
+            font-size: 0.9rem;
+        }
+
+        .file-upload-text strong {
+            color: #00f2fe;
+        }
+
+        .image-preview {
+            position: relative;
+            margin-top: 15px;
+            display: none;
+        }
+
+        .image-preview.active {
+            display: block;
+        }
+
+        .image-preview img {
+            width: 100%;
+            max-height: 250px;
+            object-fit: cover;
+            border-radius: 10px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .remove-image {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            background: rgba(255, 0, 127, 0.9);
+            color: #fff;
+            border: none;
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            cursor: pointer;
+            font-size: 1rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: transform 0.3s;
+        }
+
+        .remove-image:hover {
+            transform: scale(1.1);
+        }
+
+        .modal-buttons {
+            display: flex;
+            gap: 15px;
+            margin-top: 25px;
+        }
+
+        .modal-buttons button {
+            flex: 1;
+        }
+
+        .btn-secondary {
+            background: transparent;
+            color: #a1a1aa;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+
+        .btn-secondary:hover {
+            background: rgba(255, 255, 255, 0.05);
+        }
+
+        .admin-panel {
+            margin-bottom: 40px;
+            padding: 30px;
+            background: rgba(0, 242, 254, 0.05);
+            border: 1px solid rgba(0, 242, 254, 0.2);
+            border-radius: 15px;
+        }
+
+        .admin-panel h3 {
+            color: #00f2fe;
+            margin-bottom: 20px;
+            font-size: 1.3rem;
+        }
+
+        .admin-actions {
+            display: flex;
+            gap: 15px;
+            flex-wrap: wrap;
+        }
+
+        .setup-notice {
+            background: rgba(255, 193, 7, 0.1);
+            border: 1px solid rgba(255, 193, 7, 0.3);
+            padding: 20px;
+            border-radius: 10px;
+            margin-bottom: 30px;
+            color: #ffc107;
+        }
+
+        .setup-notice h4 {
+            margin-bottom: 10px;
+        }
+
+        .setup-notice ol {
+            margin-left: 20px;
+            line-height: 1.8;
+        }
+
+        footer {
+            padding: 40px 5%;
+            text-align: center;
+            background-color: #0a0a0f;
+            border-top: 1px solid rgba(255, 255, 255, 0.05);
+            color: #666;
+        }
+
+        @media (max-width: 768px) {
+            .hero h1 { font-size: 2.5rem; }
+            .hero p { font-size: 1rem; }
+            nav ul { gap: 15px; }
+            .logo { font-size: 1.4rem; }
+            .toast { bottom: 20px; right: 20px; left: 20px; max-width: none; }
+            .info-title { font-size: 2rem; }
+            .info-page-header { flex-direction: column; gap: 20px; }
+            .modal-content { padding: 30px 20px; }
+        }
+    </style>
+</head>
+<body>
+
+    <header>
+        <div class="logo">EnJoyTheMR</div>
+        <nav>
+            <ul>
+                <li><a href="#home">Главная</a></li>
+                <li><a href="#features">Возможности</a></li>
+                <li><a onclick="openInfoPage()">Информация</a></li>
+                <li><a onclick="openLoginModal()">Админ</a></li>
+            </ul>
+        </nav>
+    </header>
+
+    <section class="hero" id="home">
+        <div class="hero-content">
+            <h1>Добро пожаловать в EnJoyTheMR</h1>
+            <p>Откройте для себя новые горизонты. Мы создаем пространство, где технологии встречаются с вдохновением, а каждый момент становится незабываемым.</p>
+            <button class="btn" onclick="openInfoPage()">Исследовать</button>
+        </div>
+    </section>
+
+    <section class="features" id="features">
+        <h2 class="section-title">Почему выбирают нас</h2>
+        <div class="features-grid">
+            <div class="feature-card">
+                <div class="feature-icon">🚀</div>
+                <h3>Инновации</h3>
+                <p>Мы используем передовые технологии и свежие идеи, чтобы предлагать вам уникальный опыт, опережающий время.</p>
+                <button class="feedback-btn" onclick="showFeedback()">Оставить отзыв</button>
+                <div class="reviewed-badge">✅ Вы уже оставили отзыв</div>
+            </div>
+            <div class="feature-card">
+                <div class="feature-icon">🎨</div>
+                <h3>Креативность</h3>
+                <p>Каждый наш проект — это произведение искусства. Мы уделяем внимание каждой детали, создавая эстетику и комфорт.</p>
+                <button class="feedback-btn" onclick="showFeedback()">Оставить отзыв</button>
+                <div class="reviewed-badge">✅ Вы уже оставили отзыв</div>
+            </div>
+            <div class="feature-card">
+                <div class="feature-icon">🤝</div>
+                <h3>Сообщество</h3>
+                <p>EnJoyTheMR — это не просто бренд, это сообщество единомышленников. Присоединяйтесь и станьте частью истории.</p>
+                <button class="feedback-btn" onclick="showFeedback()">Оставить отзыв</button>
+                <div class="reviewed-badge">✅ Вы уже оставили отзыв</div>
+            </div>
+        </div>
+    </section>
+
+    <footer id="contact">
+        <p>&copy; 2023 EnJoyTheMR. Все права защищены. | Связаться с нами: hello@enjoythemr.com</p>
+    </footer>
+
+    <div id="toast" class="toast">
+        <div class="toast-content">
+            <span class="toast-icon">✓</span>
+            <span>Спасибо за отзыв! Нам это очень важно.</span>
+        </div>
+    </div>
+
+    <div id="infoPage" class="info-page">
+        <div class="info-page-content">
+            <div class="info-page-header">
+                <div class="logo">EnJoyTheMR</div>
+                <button class="back-btn" onclick="closeInfoPage()">← Вернуться на главную</button>
+            </div>
+
+            <h1 class="info-title">Информация</h1>
+            <p class="info-subtitle">Последние новости и обновления от команды EnJoyTheMR</p>
+
+            <div id="setupNotice" class="setup-notice" style="display: none;">
+                <h4>⚠️ Требуется настройка Firebase</h4>
+                <p>Чтобы публикации были видны всем посетителям, нужно настроить Firebase:</p>
+                <ol>
+                    <li>Перейдите на <a href="https://console.firebase.google.com/" target="_blank" style="color: #00f2fe;">Firebase Console</a></li>
+                    <li>Создайте новый проект</li>
+                    <li>Добавьте веб-приложение и скопируйте конфигурацию</li>
+                    <li>Включите Firestore Database</li>
+                    <li>Вставьте конфигурацию в код (строка firebaseConfig)</li>
+                </ol>
+            </div>
+
+            <div id="adminPanel" class="admin-panel" style="display: none;">
+                <h3>🔐 Панель администратора</h3>
+                <div class="admin-actions">
+                    <button class="btn" onclick="openAddPostModal()">+ Добавить публикацию</button>
+                    <button class="btn btn-secondary" onclick="logout()">Выйти</button>
+                </div>
+            </div>
+
+            <div id="postsContainer" class="posts-container"></div>
+        </div>
+    </div>
+
+    <div id="loginModal" class="modal">
+        <div class="modal-content">
+            <h2 class="modal-title">Вход для администратора</h2>
+            <form onsubmit="handleLogin(event)">
+                <div class="form-group">
+                    <label>Пароль</label>
+                    <input type="password" id="adminPassword" required placeholder="Введите пароль">
+                </div>
+                <div class="modal-buttons">
+                    <button type="button" class="btn btn-secondary" onclick="closeLoginModal()">Отмена</button>
+                    <button type="submit" class="btn">Войти</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <div id="addPostModal" class="modal">
+        <div class="modal-content">
+            <h2 class="modal-title">Новая публикация</h2>
+            <form onsubmit="handleAddPost(event)">
+                <div class="form-group">
+                    <label>Заголовок</label>
+                    <input type="text" id="postTitle" required placeholder="Введите заголовок">
+                </div>
+                <div class="form-group">
+                    <label>Содержание</label>
+                    <textarea id="postContent" required placeholder="Введите текст публикации"></textarea>
+                </div>
+                <div class="form-group">
+                    <label>Фото (необязательно)</label>
+                    <div class="file-upload" id="fileUpload">
+                        <input type="file" id="postImage" accept="image/*" onchange="handleImageSelect(event)">
+                        <div class="file-upload-icon">📷</div>
+                        <div class="file-upload-text">
+                            <strong>Нажмите для выбора</strong> или перетащите файл сюда<br>
+                            <small>PNG, JPG, GIF до 2 МБ</small>
+                        </div>
+                    </div>
+                    <div class="image-preview" id="imagePreview">
+                        <img id="previewImg" src="" alt="Превью">
+                        <button type="button" class="remove-image" onclick="removeImage()">✕</button>
+                    </div>
+                </div>
+                <div class="modal-buttons">
+                    <button type="button" class="btn btn-secondary" onclick="closeAddPostModal()">Отмена</button>
+                    <button type="submit" class="btn">Опубликовать</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Firebase SDK -->
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
+
+    <script>
+        const firebaseConfig = {
+            apiKey: "YOUR_API_KEY",
+            authDomain: "YOUR_PROJECT_ID.firebaseapp.com",
+            projectId: "YOUR_PROJECT_ID",
+            storageBucket: "YOUR_PROJECT_ID.appspot.com",
+            messagingSenderId: "YOUR_SENDER_ID",
+            appId: "YOUR_APP_ID"
+        };
+
+        let db = null;
+        let firebaseInitialized = false;
+
+        try {
+            firebase.initializeApp(firebaseConfig);
+            db = firebase.firestore();
+            firebaseInitialized = true;
+        } catch (error) {
+            console.error('Ошибка инициализации Firebase:', error);
+        }
+
+        const ADMIN_PASSWORD = 'EnJoyTheMrFan';
+        
+        let isAdmin = false;
+        let currentImageData = null;
+        let unsubscribe = null;
+
+        function checkReviewStatus() {
+            const hasReviewed = localStorage.getItem('enjoythemr_reviewed') === 'true';
+            const feedbackBtns = document.querySelectorAll('.feedback-btn');
+            const reviewedBadges = document.querySelectorAll('.reviewed-badge');
+
+            feedbackBtns.forEach(btn => {
+                if (hasReviewed) {
+                    btn.classList.add('hidden');
+                } else {
+                    btn.classList.remove('hidden');
+                }
+            });
+
+            reviewedBadges.forEach(badge => {
+                if (hasReviewed) {
+                    badge.classList.add('show');
+                } else {
+                    badge.classList.remove('show');
+                }
+            });
+        }
+
+        function markAsReviewed() {
+            localStorage.setItem('enjoythemr_reviewed', 'true');
+            checkReviewStatus();
+        }
+
+        function showFeedback() {
+            if (localStorage.getItem('enjoythemr_reviewed') === 'true') return;
+
+            const toast = document.getElementById('toast');
+            toast.classList.add('show');
+            markAsReviewed();
+            
+            setTimeout(() => {
+                toast.classList.remove('show');
+                openInfoPage();
+            }, 1500);
+        }
+
+        function openInfoPage() {
+            const infoPage = document.getElementById('infoPage');
+            infoPage.classList.add('active');
+            document.body.style.overflow = 'hidden';
+            infoPage.scrollTop = 0;
+            loadPosts();
+            updateAdminPanel();
+        }
+
+        function closeInfoPage() {
+            const infoPage = document.getElementById('infoPage');
+            infoPage.classList.remove('active');
+            document.body.style.overflow = '';
+            if (unsubscribe) {
+                unsubscribe();
+                unsubscribe = null;
+            }
+        }
+
+        function openLoginModal() {
+            document.getElementById('loginModal').classList.add('active');
+        }
+
+        function closeLoginModal() {
+            document.getElementById('loginModal').classList.remove('active');
+            document.getElementById('adminPassword').value = '';
+        }
+
+        function handleLogin(event) {
+            event.preventDefault();
+            const password = document.getElementById('adminPassword').value;
+            
+            if (password === ADMIN_PASSWORD) {
+                isAdmin = true;
+                closeLoginModal();
+                updateAdminPanel();
+                showNotification('Вы вошли как администратор');
+            } else {
+                alert('Неверный пароль!');
+            }
+        }
+
+        function logout() {
+            isAdmin = false;
+            updateAdminPanel();
+            loadPosts();
+            showNotification('Вы вышли из системы');
+        }
+
+        function updateAdminPanel() {
+            const adminPanel = document.getElementById('adminPanel');
+            adminPanel.style.display = isAdmin ? 'block' : 'none';
+        }
+
+        function openAddPostModal() {
+            document.getElementById('addPostModal').classList.add('active');
+        }
+
+        function closeAddPostModal() {
+            document.getElementById('addPostModal').classList.remove('active');
+            document.getElementById('postTitle').value = '';
+            document.getElementById('postContent').value = '';
+            document.getElementById('postImage').value = '';
+            removeImage();
+        }
+
+        function handleImageSelect(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            if (!file.type.startsWith('image/')) {
+                alert('Пожалуйста, выберите изображение');
+                event.target.value = '';
+                return;
+            }
+
+            if (file.size > 2 * 1024 * 1024) {
+                alert('Размер изображения не должен превышать 2 МБ');
+                event.target.value = '';
+                return;
+            }
+
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                currentImageData = e.target.result;
+                const preview = document.getElementById('imagePreview');
+                const previewImg = document.getElementById('previewImg');
+                previewImg.src = currentImageData;
+                preview.classList.add('active');
+            };
+            reader.readAsDataURL(file);
+        }
+
+        function removeImage() {
+            currentImageData = null;
+            document.getElementById('postImage').value = '';
+            const preview = document.getElementById('imagePreview');
+            preview.classList.remove('active');
+            document.getElementById('previewImg').src = '';
+        }
+
+        async function handleAddPost(event) {
+            event.preventDefault();
+            
+            if (!firebaseInitialized) {
+                alert('Firebase не настроен. Пожалуйста, настройте базу данных.');
+                return;
+            }
+            
+            const title = document.getElementById('postTitle').value;
+            const content = document.getElementById('postContent').value;
+            
+            const newPost = {
+                title: title,
+                content: content,
+                image: currentImageData,
+                date: new Date().toLocaleDateString('ru-RU', { 
+                    year: 'numeric', 
+                    month: 'long', 
+                    day: 'numeric',
+                    hour: '2-digit',
+                    minute: '2-digit'
+                }),
+                timestamp: firebase.firestore.FieldValue.serverTimestamp()
+            };
+
+            try {
+                await db.collection('posts').add(newPost);
+                closeAddPostModal();
+                showNotification('Публикация успешно добавлена!');
+            } catch (error) {
+                console.error('Ошибка добавления поста:', error);
+                alert('Не удалось сохранить публикацию: ' + error.message);
+            }
+        }
+
+        async function deletePost(id) {
+            if (!confirm('Вы уверены, что хотите удалить эту публикацию?')) {
+                return;
+            }
+            
+            try {
+                await db.collection('posts').doc(id).delete();
+                showNotification('Публикация удалена');
+            } catch (error) {
+                console.error('Ошибка удаления поста:', error);
+                alert('Не удалось удалить публикацию: ' + error.message);
+            }
+        }
+
+        function loadPosts() {
+            if (!firebaseInitialized) {
+                document.getElementById('postsContainer').innerHTML = `
+                    <div class="empty-state">
+                        <div class="empty-state-icon">⚠️</div>
+                        <p>Firebase не настроен. Пожалуйста, следуйте инструкциям выше.</p>
+                    </div>
+                `;
+                return;
+            }
+
+            if (unsubscribe) {
+                unsubscribe();
+            }
+
+            unsubscribe = db.collection('posts')
+                .orderBy('timestamp', 'desc')
+                .onSnapshot((snapshot) => {
+                    const posts = [];
+                    snapshot.forEach((doc) => {
+                        posts.push({
+                            id: doc.id,
+                            ...doc.data()
+                        });
+                    });
+                    renderPosts(posts);
+                }, (error) => {
+                    console.error('Ошибка загрузки постов:', error);
+                    document.getElementById('postsContainer').innerHTML = `
+                        <div class="empty-state">
+                            <div class="empty-state-icon">⚠️</div>
+                            <p>Ошибка загрузки данных: ${error.message}</p>
+                        </div>
+                    `;
+                });
+        }
+
+        function renderPosts(posts) {
+            const container = document.getElementById('postsContainer');
+            
+            if (posts.length === 0) {
+                container.innerHTML = `
+                    <div class="empty-state">
+                        <div class="empty-state-icon">📭</div>
+                        <p>Пока нет публикаций</p>
+                    </div>
+                `;
+                return;
+            }
+            
+            container.innerHTML = posts.map(post => `
+                <div class="post-item">
+                    <div class="post-header">
+                        <h3 class="post-title">${escapeHtml(post.title)}</h3>
+                        <span class="post-date">${post.date}</span>
+                    </div>
+                    <p class="post-content">${escapeHtml(post.content)}</p>
+                    ${post.image ? `<img src="${post.image}" alt="${escapeHtml(post.title)}" class="post-image">` : ''}
+                    ${isAdmin ? `<button class="delete-btn" onclick="deletePost('${post.id}')">Удалить</button>` : ''}
+                </div>
+            `).join('');
+        }
+
+        function escapeHtml(text) {
+            if (!text) return '';
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        function showNotification(message) {
+            const toast = document.getElementById('toast');
+            toast.querySelector('span:last-child').textContent = message;
+            toast.classList.add('show');
+            
+            setTimeout(() => {
+                toast.classList.remove('show');
+            }, 3000);
+        }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            checkReviewStatus();
+            if (firebaseInitialized) {
+                loadPosts();
+            } else {
+                document.getElementById('setupNotice').style.display = 'block';
+            }
+        });
+    </script>
+
+</body>
+</html>
